@@ -21,13 +21,11 @@ app.use(express.json());
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
-// الاتصال بـ Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
 
-// الاتصال بـ Redis Upstash
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_URL,
   token: process.env.UPSTASH_REDIS_TOKEN,
@@ -40,10 +38,12 @@ console.log('✅ تم الاتصال بـ Supabase و Redis');
 console.log('GREEN_API_ID:', GREEN_API_ID ? 'موجود' : 'مفقود');
 console.log('GREEN_API_TOKEN:', GREEN_API_TOKEN ? 'موجود' : 'مفقود');
 
+// تخزين OTP في الذاكرة (بدل Redis)
+const otpStore = new Map(); // key: cleanPhone, value: { otp, expiresAt }
+
 // إرسال رسالة واتساب عبر Green API
 async function sendWhatsAppOtp(phone, otp) {
   try {
-    // تنظيف الرقم من كل شيء ما عدا الأرقام
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     const url = `https://7107.api.greenapi.com/waInstance${GREEN_API_ID}/SendMessage/${GREEN_API_TOKEN}`;
     const body = {
@@ -65,12 +65,10 @@ async function sendWhatsAppOtp(phone, otp) {
   }
 }
 
-// توليد OTP عشوائي
 function generateOtp() {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
-// نقطة فحص
 app.get('/', (req, res) => {
   res.send('ديباناج يعمل! 🚛');
 });
@@ -80,23 +78,19 @@ app.post('/api/auth/send-otp', async (req, res) => {
   const { phone } = req.body;
   if (!phone) return res.status(400).json({ error: 'رقم الهاتف مطلوب' });
 
-  // تنظيف الرقم (أرقام فقط)
   const cleanPhone = phone.replace(/[^0-9]/g, '');
   const otp = generateOtp();
 
-  try {
-    await redis.set(`otp:${cleanPhone}`, otp, { ex: 300 }); // حفظ 5 دقائق
-    console.log('💾 حفظ OTP لـ', cleanPhone, 'الرمز:', otp);
-    const sent = await sendWhatsAppOtp(phone, otp);
+  // حفظ الرمز في الذاكرة لمدة 5 دقائق
+  otpStore.set(cleanPhone, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+  console.log('💾 حفظ OTP لـ', cleanPhone, 'الرمز:', otp);
 
-    if (sent) {
-      res.json({ success: true, message: 'تم إرسال الرمز' });
-    } else {
-      res.status(500).json({ error: 'فشل إرسال الرمز' });
-    }
-  } catch (e) {
-    console.error('❌ خطأ في حفظ/إرسال OTP:', e);
-    res.status(500).json({ error: 'خطأ في الخادم' });
+  const sent = await sendWhatsAppOtp(phone, otp);
+
+  if (sent) {
+    res.json({ success: true, message: 'تم إرسال الرمز' });
+  } else {
+    res.status(500).json({ error: 'فشل إرسال الرمز' });
   }
 });
 
@@ -105,25 +99,26 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   const { phone, otp } = req.body;
   if (!phone || !otp) return res.status(400).json({ error: 'بيانات ناقصة' });
 
-  // تنظيف الرقم والرمز من المسافات
   const cleanPhone = phone.replace(/[^0-9]/g, '');
   const cleanOtp = otp.trim();
 
-  try {
-    const stored = await redis.get(`otp:${cleanPhone}`);
-    const cleanStored = stored ? stored.trim() : '';
+  const stored = otpStore.get(cleanPhone);
+  console.log('🔍 التحقق من OTP لـ', cleanPhone, 'المدخل:', cleanOtp, 'المخزن:', stored ? stored.otp : 'غير موجود');
 
-    console.log('🔍 التحقق من OTP لـ', cleanPhone, 'المدخل:', cleanOtp, 'المخزن:', cleanStored);
+  if (!stored) {
+    return res.status(400).json({ error: 'انتهت صلاحية الرمز أو لم يتم إرساله' });
+  }
 
-    if (cleanStored && cleanStored === cleanOtp) {
-      await redis.del(`otp:${cleanPhone}`);
-      res.json({ success: true, userId: cleanPhone, phone: cleanPhone });
-    } else {
-      res.status(400).json({ error: 'رمز التحقق غير صحيح' });
-    }
-  } catch (e) {
-    console.error('❌ خطأ في التحقق من OTP:', e);
-    res.status(500).json({ error: 'خطأ في الخادم' });
+  if (Date.now() > stored.expiresAt) {
+    otpStore.delete(cleanPhone);
+    return res.status(400).json({ error: 'انتهت صلاحية الرمز' });
+  }
+
+  if (stored.otp === cleanOtp) {
+    otpStore.delete(cleanPhone);
+    res.json({ success: true, userId: cleanPhone, phone: cleanPhone });
+  } else {
+    res.status(400).json({ error: 'رمز التحقق غير صحيح' });
   }
 });
 
@@ -257,7 +252,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// تشغيل الخادم
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🚀 خادم ديباناج يعمل على المنفذ ${PORT}`);
