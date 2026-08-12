@@ -3,6 +3,7 @@ import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../theme.dart';
 import '../config.dart';
+import '../services/auth_service.dart';
 import 'otp_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -15,8 +16,8 @@ class _LoginScreenState extends State<LoginScreen> {
   String _completePhone = '';
   bool _isLoading = false;
 
-  // إرسال رمز التحقق
-  void _sendOtp() {
+  // إرسال رمز التحقق إلى رقم الهاتف
+  Future<void> _sendOtp() async {
     if (_completePhone.trim().length < 9) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('الرجاء إدخال رقم جوال صحيح')),
@@ -24,13 +25,29 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // الانتقال إلى شاشة التحقق
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => OtpScreen(phone: _completePhone),
-      ),
-    );
+    setState(() => _isLoading = true);
+
+    try {
+      // استدعاء خدمة المصادقة لإرسال الرمز عبر الخادم
+      await AuthService.sendOtp(_completePhone);
+      
+      if (!mounted) return;
+      
+      // الانتقال إلى شاشة التحقق
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => OtpScreen(phone: _completePhone)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('فشل إرسال الرمز: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -93,7 +110,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _sendOtp,
-                    child: Text('إرسال رمز التحقق'),
+                    child: _isLoading
+                        ? SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(color: Colors.white),
+                          )
+                        : Text('إرسال رمز التحقق'),
                   ),
                 ).animate().slideY(begin: 0.3, delay: 400.ms),
               ],
