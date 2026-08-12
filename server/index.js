@@ -1,4 +1,11 @@
 require('dotenv').config();
+process.on('uncaughtException', (err) => {
+  console.error('❌ خطأ غير متوقع:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('❌ وعد مرفوض غير معالج:', reason);
+});
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
