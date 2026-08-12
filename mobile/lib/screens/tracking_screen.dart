@@ -3,10 +3,14 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import '../providers/request_provider.dart';
 import '../providers/location_provider.dart';
+import '../services/socket_service.dart';
 import '../theme.dart';
 import '../config.dart';
+import 'completion_rating_screen.dart';
 
 class TrackingScreen extends StatefulWidget {
   @override
@@ -14,6 +18,54 @@ class TrackingScreen extends StatefulWidget {
 }
 
 class _TrackingScreenState extends State<TrackingScreen> {
+  LatLng? _truckPosition;
+
+  @override
+  void initState() {
+    super.initState();
+    _listenForProviderLocation();
+  }
+
+  // الاستماع لتحديثات موقع السطحة عبر Socket.IO
+  void _listenForProviderLocation() {
+    final socket = SocketService.socket;
+    socket.on('provider:location:update', (data) {
+      if (mounted && data['lat'] != null && data['lng'] != null) {
+        setState(() {
+          _truckPosition = LatLng(data['lat'], data['lng']);
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    SocketService.socket.off('provider:location:update');
+    super.dispose();
+  }
+
+  // فتح الهاتف للاتصال بالسائق
+  Future<void> _callDriver(String phone) async {
+    final url = 'tel:$phone';
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذر فتح الهاتف')),
+      );
+    }
+  }
+
+  // إتمام الرحلة والتوجه لشاشة التقييم
+  void _completeTrip() {
+    final requestProv = context.read<RequestProvider>();
+    requestProv.completeRequest();
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => CompletionRatingScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final requestProv = context.watch<RequestProvider>();
@@ -27,6 +79,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final pickupLatLng = LatLng(request.pickupLat, request.pickupLng);
     final dropoffLatLng = LatLng(request.dropoffLat, request.dropoffLng);
 
@@ -37,8 +90,8 @@ class _TrackingScreenState extends State<TrackingScreen> {
           // الخريطة
           FlutterMap(
             options: MapOptions(
-              center: pickupLatLng,
-              zoom: AppConfig.defaultZoom,
+              center: _truckPosition ?? pickupLatLng,
+              zoom: 13,
             ),
             children: [
               TileLayer(
@@ -47,74 +100,152 @@ class _TrackingScreenState extends State<TrackingScreen> {
               ),
               MarkerLayer(
                 markers: [
-                  // موقع الطلب
+                  // موقع العميل (العطل)
                   Marker(
                     point: pickupLatLng,
                     width: 50,
                     height: 50,
                     child: Icon(Icons.car_repair, color: AppTheme.primary, size: 40),
                   ),
-                  // موقع الوجهة (إذا كانت موجودة)
+                  // الوجهة
                   Marker(
                     point: dropoffLatLng,
                     width: 50,
                     height: 50,
                     child: Icon(Icons.flag, color: Colors.green, size: 40),
                   ),
+                  // موقع السطحة (إذا توفر)
+                  if (_truckPosition != null)
+                    Marker(
+                      point: _truckPosition!,
+                      width: 60,
+                      height: 60,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.9),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.green.withOpacity(0.3),
+                              blurRadius: 12,
+                            ),
+                          ],
+                        ),
+                        child: Icon(Icons.local_shipping, color: Colors.white, size: 30),
+                      ),
+                    ),
                 ],
               ),
             ],
           ),
 
-          // بطاقة الحالة السفلية
+          // بطاقة معلومات السائق والدفع النقدي
           Positioned(
-            bottom: 30,
-            left: 16,
-            right: 16,
-            child: Card(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'الونش في الطريق',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? AppTheme.darkSurface : Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // معلومات السائق
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 24,
+                        backgroundColor: AppTheme.primary.withOpacity(0.1),
+                        child: Icon(Icons.person, color: AppTheme.primary),
                       ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              request.providerName ?? 'السائق',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : AppTheme.textPrimary,
+                              ),
+                            ),
+                            if (request.providerPlate != null)
+                              Text(
+                                'لوحة: ${request.providerPlate}',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => _callDriver('213561014379'), // رقم تجريبي، استبدله برقم السائق الفعلي
+                        icon: Icon(Icons.phone, color: Colors.green),
+                        iconSize: 28,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+
+                  // بانر الدفع النقدي
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accent.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.accent),
                     ),
-                    SizedBox(height: 8),
-                    Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.person, color: AppTheme.primary, size: 20),
+                        Icon(Icons.payments, color: AppTheme.accent),
                         SizedBox(width: 8),
-                        Text(request.providerName ?? 'مزود خدمة'),
-                        Spacer(),
-                        if (request.providerPlate != null)
-                          Text(request.providerPlate!),
+                        Expanded(
+                          child: Text(
+                            'الدفع نقداً حصراً للسائق عند الوصول',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : AppTheme.textPrimary,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${request.price.round()} ${AppConfig.currency}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primary,
+                          ),
+                        ),
                       ],
                     ),
-                    SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.payments, color: AppTheme.primary, size: 20),
-                        SizedBox(width: 8),
-                        Text('${request.price.round()} ${AppConfig.currency}'),
-                      ],
+                  ),
+                  SizedBox(height: 16),
+
+                  // زر إنهاء الرحلة (للتجربة فقط، في التطبيق الفعلي يفعّله السائق)
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _completeTrip,
+                      icon: Icon(Icons.check_circle_outline),
+                      label: Text('إنهاء الرحلة والتقييم'),
                     ),
-                    SizedBox(height: 16),
-                    LinearProgressIndicator(
-                      color: AppTheme.primary,
-                      backgroundColor: Colors.grey[300],
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'جاري الوصول إليك...',
-                      style: TextStyle(color: AppTheme.textSecondary),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ).animate().slideY(begin: 1, duration: 600.ms),
           ),
