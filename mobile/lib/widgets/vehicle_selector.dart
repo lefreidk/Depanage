@@ -11,7 +11,7 @@ class VehicleSelector extends StatelessWidget {
     required this.onChanged,
   }) : super(key: key);
 
-  final List<Map<String, dynamic>> _vehicles = [
+  final List<Map<String, dynamic>> _vehicles = const [
     {'type': 'سيدان', 'icon': Icons.directions_car},
     {'type': 'SUV', 'icon': Icons.car_rental},
     {'type': 'دفع رباعي', 'icon': Icons.agriculture},
