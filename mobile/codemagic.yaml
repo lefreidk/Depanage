@@ -4,8 +4,14 @@ workflows:
     environment:
       flutter: stable
     scripts:
-      - flutter pub get
-      - flutter pub run flutter_launcher_icons
-      - flutter build apk --release --android-skip-build-dependency-validation
+      - name: Get dependencies
+        working_directory: mobile
+        script: flutter pub get
+      - name: Generate icons
+        working_directory: mobile
+        script: flutter pub run flutter_launcher_icons
+      - name: Build APK
+        working_directory: mobile
+        script: flutter build apk --release --android-skip-build-dependency-validation
     artifacts:
-      - build/app/outputs/flutter-apk/app-release.apk
+      - mobile/build/app/outputs/flutter-apk/app-release.apk
