@@ -1,92 +1,164 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../providers/app_provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme.dart';
+import '../config.dart';
+import 'profile_screen.dart';
+import 'driver_onboarding_screen.dart';
+import 'login_screen.dart';
 
-class SettingsScreen extends StatefulWidget {
-  @override
-  _SettingsScreenState createState() => _SettingsScreenState();
-}
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({Key? key}) : super(key: key);
 
-class _SettingsScreenState extends State<SettingsScreen> {
-  bool _notificationsEnabled = true;
-  bool _darkModeEnabled = false;
+  // فتح واتساب الدعم الفني
+  Future<void> _openWhatsApp(BuildContext context) async {
+    final url = 'https://wa.me/${AppConfig.supportWhatsAppNumber}';
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذر فتح واتساب')),
+      );
+    }
+  }
+
+  // تسجيل الخروج
+  Future<void> _logout(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        return AlertDialog(
+          title: Text('تسجيل الخروج'),
+          content: Text('هل تريد حقاً تسجيل الخروج؟'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text('إلغاء'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text('تسجيل الخروج', style: TextStyle(color: AppTheme.error)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      await context.read<AuthProvider>().logout();
+      if (!context.mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final appProvider = context.watch<AppProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(title: Text('الإعدادات')),
       body: ListView(
         padding: EdgeInsets.all(16),
         children: [
-          // قسم التفضيلات
-          Text(
-            'التفضيلات',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: AppTheme.textSecondary,
-            ),
-          ),
-          SizedBox(height: 12),
-          Card(
-            child: Column(
-              children: [
-                SwitchListTile(
-                  title: Text('الإشعارات'),
-                  subtitle: Text('استقبال تنبيهات الطلبات والعروض'),
-                  value: _notificationsEnabled,
-                  activeColor: AppTheme.primary,
-                  onChanged: (value) {
-                    setState(() => _notificationsEnabled = value);
-                  },
-                ),
-                Divider(height: 1),
-                SwitchListTile(
-                  title: Text('الوضع الداكن'),
-                  subtitle: Text('تفعيل المظهر الداكن للتطبيق'),
-                  value: _darkModeEnabled,
-                  activeColor: AppTheme.primary,
-                  onChanged: (value) {
-                    setState(() => _darkModeEnabled = value);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('سيتم تفعيل الوضع الداكن في التحديث القادم')),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 24),
-
-          // قسم الحساب
+          // ========== قسم الحساب ==========
           Text(
             'الحساب',
             style: TextStyle(
-              fontWeight: FontWeight.bold,
               fontSize: 16,
-              color: AppTheme.textSecondary,
+              fontWeight: FontWeight.bold,
+              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
             ),
           ),
-          SizedBox(height: 12),
+          SizedBox(height: 8),
           Card(
+            color: isDark ? AppTheme.darkSurface : Colors.white,
+            child: ListTile(
+              leading: Icon(Icons.person_outline, color: AppTheme.primary),
+              title: Text('الملف الشخصي'),
+              subtitle: Text('تعديل الاسم والصورة والمركبات'),
+              trailing: Icon(Icons.chevron_left),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ProfileScreen()),
+                );
+              },
+            ),
+          ),
+          SizedBox(height: 24),
+
+          // ========== قسم التفضيلات ==========
+          Text(
+            'التفضيلات',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+            ),
+          ),
+          SizedBox(height: 8),
+          Card(
+            color: isDark ? AppTheme.darkSurface : Colors.white,
             child: Column(
               children: [
+                // اختيار اللغة
                 ListTile(
-                  leading: Icon(Icons.person_outline, color: AppTheme.primary),
-                  title: Text('الملف الشخصي'),
-                  trailing: Icon(Icons.chevron_left),
-                  onTap: () {
-                    Navigator.pushNamed(context, '/profile');
+                  leading: Icon(Icons.language, color: AppTheme.primary),
+                  title: Text('اللغة'),
+                  trailing: DropdownButton<String>(
+                    value: appProvider.locale.languageCode,
+                    underline: SizedBox(),
+                    items: const [
+                      DropdownMenuItem(value: 'ar', child: Text('العربية')),
+                      DropdownMenuItem(value: 'fr', child: Text('Français')),
+                      DropdownMenuItem(value: 'en', child: Text('English')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        context.read<AppProvider>().setLocale(Locale(value));
+                      }
+                    },
+                  ),
+                ),
+                Divider(height: 1),
+                // الوضع الداكن
+                SwitchListTile(
+                  secondary: Icon(
+                    isDark ? Icons.dark_mode : Icons.light_mode,
+                    color: AppTheme.primary,
+                  ),
+                  title: Text('الوضع الداكن'),
+                  value: appProvider.themeMode == ThemeMode.dark,
+                  activeColor: AppTheme.primary,
+                  onChanged: (value) {
+                    context.read<AppProvider>().toggleTheme(value);
                   },
                 ),
                 Divider(height: 1),
-                ListTile(
-                  leading: Icon(Icons.history, color: AppTheme.primary),
-                  title: Text('سجل الطلبات'),
-                  trailing: Icon(Icons.chevron_left),
-                  onTap: () {
-                    Navigator.pushNamed(context, '/history');
+                // وضع شريك العمل
+                SwitchListTile(
+                  secondary: Icon(Icons.local_shipping, color: AppTheme.primary),
+                  title: Text('وضع شريك العمل'),
+                  subtitle: Text('استقبال طلبات الجر كسائق'),
+                  value: appProvider.isDriverMode,
+                  activeColor: AppTheme.primary,
+                  onChanged: (value) async {
+                    await context.read<AppProvider>().toggleDriverMode(value);
+                    if (value) {
+                      // الانتقال إلى شاشة طلب الشراكة
+                      if (context.mounted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => DriverOnboardingScreen()),
+                        );
+                      }
+                    }
                   },
                 ),
               ],
@@ -94,59 +166,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           SizedBox(height: 24),
 
-          // قسم حول التطبيق
+          // ========== قسم الدعم ==========
           Text(
-            'حول التطبيق',
+            'الدعم',
             style: TextStyle(
-              fontWeight: FontWeight.bold,
               fontSize: 16,
-              color: AppTheme.textSecondary,
+              fontWeight: FontWeight.bold,
+              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
             ),
           ),
-          SizedBox(height: 12),
+          SizedBox(height: 8),
           Card(
+            color: isDark ? AppTheme.darkSurface : Colors.white,
             child: Column(
               children: [
                 ListTile(
                   leading: Icon(Icons.info_outline, color: AppTheme.primary),
-                  title: Text('الإصدار'),
-                  trailing: Text('1.0.0'),
+                  title: Text('حول التطبيق'),
+                  subtitle: Text('الإصدار ${AppConfig.appVersion}'),
                 ),
                 Divider(height: 1),
                 ListTile(
-                  leading: Icon(Icons.share, color: AppTheme.primary),
-                  title: Text('مشاركة التطبيق'),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('قريباً')),
-                    );
-                  },
-                ),
-                Divider(height: 1),
-                ListTile(
-                  leading: Icon(Icons.star, color: AppTheme.primary),
-                  title: Text('تقييم التطبيق'),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('شكراً لدعمك!')),
-                    );
-                  },
+                  leading: Icon(Icons.chat, color: Colors.green),
+                  title: Text('اتصل بنا عبر واتساب'),
+                  onTap: () => _openWhatsApp(context),
                 ),
               ],
             ),
           ),
-          SizedBox(height: 24),
+          SizedBox(height: 32),
 
-          // زر تسجيل الخروج
+          // ========== زر تسجيل الخروج ==========
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: () async {
-                await context.read<AuthProvider>().logout();
-                Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-              },
+              onPressed: () => _logout(context),
               icon: Icon(Icons.logout, color: AppTheme.error),
-              label: Text('تسجيل الخروج', style: TextStyle(color: AppTheme.error)),
+              label: Text(
+                'تسجيل الخروج',
+                style: TextStyle(color: AppTheme.error),
+              ),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: AppTheme.error),
                 padding: EdgeInsets.symmetric(vertical: 16),
