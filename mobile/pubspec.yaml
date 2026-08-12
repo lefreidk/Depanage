@@ -44,5 +44,5 @@ flutter:
 # إعدادات توليد الأيقونات
 flutter_launcher_icons:
   android: true
-  ios: true
+  ios: false
   image_path: "assets/icon/app_icon.png"
