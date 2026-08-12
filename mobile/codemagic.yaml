@@ -1,0 +1,10 @@
+workflows:
+  depannage-build:
+    name: Build Depannage APK
+    environment:
+      flutter: stable
+    scripts:
+      - flutter pub get
+      - flutter build apk --release --android-skip-build-dependency-validation
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
