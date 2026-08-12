@@ -21,11 +21,13 @@ app.use(express.json());
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
+// الاتصال بـ Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
 
+// الاتصال بـ Redis Upstash
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_URL,
   token: process.env.UPSTASH_REDIS_TOKEN,
@@ -103,14 +105,17 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   const { phone, otp } = req.body;
   if (!phone || !otp) return res.status(400).json({ error: 'بيانات ناقصة' });
 
-  // تنظيف الرقم (أرقام فقط)
+  // تنظيف الرقم والرمز من المسافات
   const cleanPhone = phone.replace(/[^0-9]/g, '');
+  const cleanOtp = otp.trim();
 
   try {
     const stored = await redis.get(`otp:${cleanPhone}`);
-    console.log('🔍 التحقق من OTP لـ', cleanPhone, 'المدخل:', otp, 'المخزن:', stored);
+    const cleanStored = stored ? stored.trim() : '';
 
-    if (stored === otp) {
+    console.log('🔍 التحقق من OTP لـ', cleanPhone, 'المدخل:', cleanOtp, 'المخزن:', cleanStored);
+
+    if (cleanStored && cleanStored === cleanOtp) {
       await redis.del(`otp:${cleanPhone}`);
       res.json({ success: true, userId: cleanPhone, phone: cleanPhone });
     } else {
@@ -252,6 +257,7 @@ io.on('connection', (socket) => {
   });
 });
 
+// تشغيل الخادم
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🚀 خادم ديباناج يعمل على المنفذ ${PORT}`);
