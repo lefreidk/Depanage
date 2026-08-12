@@ -13,42 +13,26 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // التحقق من تسجيل الدخول عند فتح التطبيق
+  // التحقق من حالة تسجيل الدخول عند بدء التطبيق
   Future<void> checkLoginStatus() async {
     _isLoading = true;
     notifyListeners();
 
-    try {
-      final savedUser = StorageService.getUser();
-      if (savedUser != null) {
-        _user = savedUser;
-      }
-    } catch (e) {
-      _error = 'فشل جلب بيانات المستخدم';
+    final savedUser = StorageService.getUser();
+    if (savedUser != null) {
+      _user = savedUser;
     }
 
     _isLoading = false;
     notifyListeners();
   }
 
-  // تسجيل الدخول برمز التحقق
-  Future<bool> verifyOtp(String phone, String otp) async {
-    _isLoading = true;
-    _error = null;
+  // تسجيل دخول المستخدم بعد التحقق الناجح
+  Future<void> loginUser(User user) async {
+    _user = user;
+    await StorageService.saveUser(user);
+    await StorageService.setLoggedIn(true);
     notifyListeners();
-
-    try {
-      final user = await AuthService.verifyOtp(phone, otp);
-      _user = user;
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
   }
 
   // تسجيل الخروج
@@ -63,13 +47,15 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // تحديث الملف الشخصي
-  Future<void> updateProfile({required String name, required String email}) async {
+  Future<void> updateProfile({
+    required String name,
+    required String email,
+  }) async {
     if (_user == null) return;
 
     _isLoading = true;
     notifyListeners();
 
-    // تحديث المستخدم محليًا
     final updatedUser = User(
       id: _user!.id,
       phone: _user!.phone,
