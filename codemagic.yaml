@@ -4,7 +4,11 @@ workflows:
     environment:
       flutter: stable
     scripts:
-      - flutter pub get
-      - flutter build apk --release --android-skip-build-dependency-validation
+      - name: Get dependencies
+        script: flutter pub get
+        working_directory: mobile
+      - name: Build APK
+        script: flutter build apk --release --android-skip-build-dependency-validation
+        working_directory: mobile
     artifacts:
-      - build/app/outputs/flutter-apk/app-release.apk
+      - mobile/build/app/outputs/flutter-apk/app-release.apk
