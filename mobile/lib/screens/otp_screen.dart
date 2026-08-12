@@ -19,7 +19,6 @@ class _OtpScreenState extends State<OtpScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  // التحقق من الرمز عبر الخادم
   Future<void> _verifyOtp() async {
     if (_otpController.text.length != 4) return;
 
@@ -30,7 +29,6 @@ class _OtpScreenState extends State<OtpScreen> {
 
     try {
       final user = await AuthService.verifyOtp(widget.phone, _otpController.text);
-      // تحديث AuthProvider بالمستخدم الجديد
       await context.read<AuthProvider>().loginUser(user);
 
       if (!mounted) return;
@@ -44,7 +42,6 @@ class _OtpScreenState extends State<OtpScreen> {
     }
   }
 
-  // إعادة إرسال الرمز
   Future<void> _resendOtp() async {
     setState(() => _isLoading = true);
     try {
@@ -85,7 +82,14 @@ class _OtpScreenState extends State<OtpScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppTheme.primary.withOpacity(0.1), AppTheme.background],
+            colors: [
+              Theme.of(context).brightness == Brightness.dark
+                  ? AppTheme.darkBackground
+                  : AppTheme.primary.withOpacity(0.1),
+              Theme.of(context).brightness == Brightness.dark
+                  ? AppTheme.darkBackground
+                  : AppTheme.lightBackground,
+            ],
           ),
         ),
         child: SafeArea(
@@ -94,32 +98,39 @@ class _OtpScreenState extends State<OtpScreen> {
             child: Column(
               children: [
                 SizedBox(height: 60),
-                // أيقونة التحقق
                 Icon(Icons.verified_user, size: 80, color: AppTheme.secondary)
                     .animate()
                     .scale(duration: 600.ms),
                 SizedBox(height: 24),
-                // العنوان
                 Text(
                   'تأكيد رقم الجوال',
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineSmall
-                      ?.copyWith(color: AppTheme.textPrimary),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : AppTheme.textPrimary,
+                      ),
                 ).animate().fadeIn(),
                 SizedBox(height: 8),
-                // وصف الرمز المرسل
                 Text(
                   'تم إرسال رمز التحقق إلى ${widget.phone}',
-                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 16),
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppTheme.darkTextSecondary
+                        : AppTheme.lightTextSecondary,
+                    fontSize: 16,
+                  ),
                 ),
                 SizedBox(height: 8),
                 Text(
                   'الرجاء التحقق من واتساب',
-                  style: TextStyle(color: AppTheme.primary, fontSize: 14),
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppTheme.primary.withOpacity(0.8)
+                        : AppTheme.primary,
+                    fontSize: 14,
+                  ),
                 ),
                 SizedBox(height: 40),
-                // حقول إدخال الرمز
                 Pinput(
                   length: 4,
                   controller: _otpController,
@@ -130,7 +141,6 @@ class _OtpScreenState extends State<OtpScreen> {
                   onCompleted: (pin) => _verifyOtp(),
                 ).animate().scale(delay: 200.ms),
                 SizedBox(height: 24),
-                // زر التأكيد
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -145,15 +155,17 @@ class _OtpScreenState extends State<OtpScreen> {
                   ),
                 ).animate().slideY(begin: 0.3, delay: 400.ms),
                 SizedBox(height: 16),
-                // إعادة إرسال الرمز
                 TextButton(
                   onPressed: _isLoading ? null : _resendOtp,
                   child: Text(
                     'إعادة إرسال الرمز',
-                    style: TextStyle(color: AppTheme.primary),
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppTheme.primary.withOpacity(0.8)
+                          : AppTheme.primary,
+                    ),
                   ),
                 ),
-                // عرض رسالة خطأ إن وجدت
                 if (_errorMessage != null) ...[
                   SizedBox(height: 16),
                   Text(
