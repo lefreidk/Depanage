@@ -20,16 +20,14 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String _vehicleType = 'سيدان';
-  double _price = 3000; // السعر الافتراضي بالدينار الجزائري
+  double _price = 3000;
 
   @override
   void initState() {
     super.initState();
-    // جلب الموقع عند فتح الشاشة
     context.read<LocationProvider>().getCurrentLocation();
   }
 
-  // عرض البطاقة السفلية لطلب الجر
   void _showRequestSheet() {
     showModalBottomSheet(
       context: context,
@@ -58,14 +56,12 @@ class _HomeScreenState extends State<HomeScreen> {
             return;
           }
 
-          // الوجهة الافتراضية: نقطة قريبة (سنضيف اختيار الوجهة لاحقًا)
           final pickup = locationProv.currentPosition!;
           final dropoff = LatLng(
             pickup.latitude + 0.01,
             pickup.longitude + 0.01,
           );
 
-          // إنشاء الطلب عبر RequestProvider
           requestProv.createRequest(
             driverId: authProv.user?.id ?? '1',
             vehicleType: _vehicleType,
@@ -76,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
             price: _price,
           );
 
-          Navigator.pop(context); // إغلاق البطاقة
+          Navigator.pop(context);
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => RequestScreen()),
@@ -89,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: DrawerMenu(),
+      drawer: DrawerMenu(), // القائمة الجانبية
       body: Consumer2<LocationProvider, RequestProvider>(
         builder: (context, locationProv, requestProv, _) {
           if (locationProv.currentPosition == null) {
@@ -107,7 +103,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
           return Stack(
             children: [
-              // الخريطة
               FlutterMap(
                 options: MapOptions(
                   center: locationProv.currentPosition,
@@ -120,7 +115,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   MarkerLayer(
                     markers: [
-                      // موقع المستخدم
                       Marker(
                         point: locationProv.currentPosition!,
                         width: 60,
@@ -144,10 +138,25 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
 
-              // شريط الحالة العلوي
+              // زر القائمة الجانبية
               Positioned(
                 top: MediaQuery.of(context).padding.top + 10,
                 left: 16,
+                child: Card(
+                  shape: CircleBorder(),
+                  child: IconButton(
+                    icon: Icon(Icons.menu, color: AppTheme.primary),
+                    onPressed: () {
+                      Scaffold.of(context).openDrawer();
+                    },
+                  ),
+                ),
+              ),
+
+              // شريط الحالة
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 10,
+                left: 70,
                 right: 16,
                 child: Card(
                   child: Padding(
@@ -180,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              // زر الطلب السفلي
+              // زر الطلب
               Positioned(
                 bottom: 30,
                 left: 24,
@@ -205,7 +214,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// بطاقة طلب الجر السفلية
 class _RequestSheet extends StatelessWidget {
   final String vehicleType;
   final double price;
@@ -228,7 +236,6 @@ class _RequestSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // مقبض البطاقة
           Container(
             width: 40,
             height: 4,
@@ -240,19 +247,16 @@ class _RequestSheet extends StatelessWidget {
           SizedBox(height: 24),
           Text('طلب خدمة جر', style: Theme.of(context).textTheme.headlineSmall),
           SizedBox(height: 24),
-          // اختيار نوع المركبة
           VehicleSelector(
             selected: vehicleType,
             onChanged: onVehicleChanged,
           ),
           SizedBox(height: 16),
-          // إدخال السعر
           PriceInput(
             initialPrice: price,
             onChanged: onPriceChanged,
           ),
           SizedBox(height: 24),
-          // زر تأكيد الطلب
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
