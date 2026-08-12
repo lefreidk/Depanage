@@ -1,0 +1,39 @@
+name: Build Depannage APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+
+      - name: Fix Gradle wrapper URL
+        run: |
+          cd mobile/android
+          echo "distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.12.1-all.zip" > gradle/wrapper/gradle-wrapper.properties
+
+      - name: Get dependencies
+        run: cd mobile && flutter pub get
+
+      - name: Generate icons
+        run: cd mobile && flutter pub run flutter_launcher_icons
+
+      - name: Build APK
+        run: cd mobile && flutter build apk --release --android-skip-build-dependency-validation
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: depannage-apk
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
