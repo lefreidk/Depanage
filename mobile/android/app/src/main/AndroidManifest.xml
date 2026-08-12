@@ -5,7 +5,7 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="ديباناج"
-        android:icon="@android:mipmap/sym_def_app_icon"
+        android:icon="@android:drawable/ic_menu_compass"
         android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
