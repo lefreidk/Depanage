@@ -28,12 +28,10 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // استدعاء خدمة المصادقة لإرسال الرمز عبر الخادم
       await AuthService.sendOtp(_completePhone);
-      
+
       if (!mounted) return;
-      
-      // الانتقال إلى شاشة التحقق
+
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => OtpScreen(phone: _completePhone)),
@@ -58,7 +56,14 @@ class _LoginScreenState extends State<LoginScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppTheme.primary.withOpacity(0.1), AppTheme.background],
+            colors: [
+              Theme.of(context).brightness == Brightness.dark
+                  ? AppTheme.darkBackground
+                  : AppTheme.primary.withOpacity(0.1),
+              Theme.of(context).brightness == Brightness.dark
+                  ? AppTheme.darkBackground
+                  : AppTheme.lightBackground,
+            ],
           ),
         ),
         child: SafeArea(
@@ -67,45 +72,52 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               children: [
                 SizedBox(height: 60),
-                // أيقونة التطبيق مع حركة
-                Icon(Icons.local_shipping, size: 100, color: AppTheme.primary)
-                    .animate()
-                    .scale(duration: 600.ms),
+                Icon(
+                  Icons.local_shipping,
+                  size: 100,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : AppTheme.primary,
+                ).animate().scale(duration: 600.ms),
                 SizedBox(height: 24),
-                // اسم التطبيق
                 Text(
                   AppConfig.appName,
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineLarge
-                      ?.copyWith(color: AppTheme.primary),
+                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : AppTheme.primary,
+                      ),
                 ).animate().fadeIn(),
                 SizedBox(height: 8),
-                // الوصف
                 Text(
                   'أدخل رقم جوالك للمتابعة',
-                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 16),
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppTheme.darkTextSecondary
+                        : AppTheme.lightTextSecondary,
+                    fontSize: 16,
+                  ),
                 ),
                 SizedBox(height: 40),
-                // حقل إدخال رقم الهاتف
                 IntlPhoneField(
                   controller: _phoneController,
                   decoration: InputDecoration(
                     labelText: 'رقم الجوال',
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).brightness == Brightness.dark
+                        ? AppTheme.darkSurface
+                        : Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide.none,
                     ),
                   ),
-                  initialCountryCode: 'DZ', // الجزائر
+                  initialCountryCode: 'DZ',
                   onChanged: (phone) {
                     _completePhone = phone.completeNumber;
                   },
                 ).animate().slideX(begin: -0.2, delay: 200.ms),
                 SizedBox(height: 24),
-                // زر إرسال رمز التحقق
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -114,7 +126,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ? SizedBox(
                             height: 20,
                             width: 20,
-                            child: CircularProgressIndicator(color: Colors.white),
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                            ),
                           )
                         : Text('إرسال رمز التحقق'),
                   ),
