@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../providers/location_provider.dart';
+import '../providers/request_provider.dart';
+import '../providers/auth_provider.dart';
 import '../theme.dart';
-
-const String serverUrl = 'https://name-depannage-server.onrender.com/'; // غيّره
+import '../config.dart';
+import '../widgets/drawer_menu.dart';
+import '../widgets/vehicle_selector.dart';
+import '../widgets/price_input.dart';
+import 'request_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -15,159 +19,250 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  IO.Socket? socket;
-  LatLng? _currentPosition;
-  String _status = 'تحديد الموقع...';
-  bool _isRequesting = false;
-  int? _nearbyProvidersCount;
+  String _vehicleType = 'سيدان';
+  double _price = 3000; // السعر الافتراضي بالدينار الجزائري
 
   @override
   void initState() {
     super.initState();
-    _getLocation();
-    _initSocket();
+    // جلب الموقع عند فتح الشاشة
+    context.read<LocationProvider>().getCurrentLocation();
   }
 
-  Future<void> _getLocation() async {
-    try {
-      LocationPermission perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
-      Position pos = await Geolocator.getCurrentPosition();
-      setState(() {
-        _currentPosition = LatLng(pos.latitude, pos.longitude);
-        _status = 'الموقع جاهز';
-      });
-    } catch (e) {
-      setState(() => _status = 'فشل تحديد الموقع');
-    }
-  }
+  // عرض البطاقة السفلية لطلب الجر
+  void _showRequestSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      builder: (context) => _RequestSheet(
+        vehicleType: _vehicleType,
+        price: _price,
+        onVehicleChanged: (type) {
+          setState(() => _vehicleType = type);
+        },
+        onPriceChanged: (price) {
+          setState(() => _price = price);
+        },
+        onSubmit: () {
+          final locationProv = context.read<LocationProvider>();
+          final requestProv = context.read<RequestProvider>();
+          final authProv = context.read<AuthProvider>();
 
-  void _initSocket() {
-    socket = IO.io(serverUrl, <String, dynamic>{
-      'transports': ['websocket'],
-      'autoConnect': true,
-    });
-    socket!.on('connect', (_) => _loginAndRegister());
-    socket!.on('new:offer', (data) {
-      // الانتقال إلى شاشة العروض
-      Navigator.push(context, MaterialPageRoute(builder: (_) => OffersScreen(offer: data)));
-    });
-    socket!.on('request:created', (data) {
-      setState(() {
-        _isRequesting = false;
-        _nearbyProvidersCount = data['nearbyCount'];
-        _status = 'تم إرسال الطلب إلى $_nearbyProvidersCount مزود';
-      });
-    });
-  }
+          if (locationProv.currentPosition == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('الرجاء تحديد الموقع أولاً')),
+            );
+            return;
+          }
 
-  void _loginAndRegister() async {
-    try {
-      final res = await http.post(
-        Uri.parse('$serverUrl/api/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'phone': '0500000000'}),
-      );
-      final user = jsonDecode(res.body);
-      socket!.emit('register', user['user']['id']);
-    } catch (e) {}
-  }
+          // الوجهة الافتراضية: نقطة قريبة (سنضيف اختيار الوجهة لاحقًا)
+          final pickup = locationProv.currentPosition!;
+          final dropoff = LatLng(
+            pickup.latitude + 0.01,
+            pickup.longitude + 0.01,
+          );
 
-  void _requestTow() {
-    if (_currentPosition == null || socket == null) return;
-    setState(() {
-      _isRequesting = true;
-      _status = 'جارٍ إرسال الطلب...';
-    });
-    socket!.emit('request:tow', {
-      'driverId': '1',
-      'vehicleType': 'sedan',
-      'pickup': {'lat': _currentPosition!.latitude, 'lng': _currentPosition!.longitude},
-      'dropoff': {'lat': _currentPosition!.latitude + 0.01, 'lng': _currentPosition!.longitude + 0.01},
-      'price': 50.0,
-    });
+          // إنشاء الطلب عبر RequestProvider
+          requestProv.createRequest(
+            driverId: authProv.user?.id ?? '1',
+            vehicleType: _vehicleType,
+            pickupLat: pickup.latitude,
+            pickupLng: pickup.longitude,
+            dropoffLat: dropoff.latitude,
+            dropoffLng: dropoff.longitude,
+            price: _price,
+          );
+
+          Navigator.pop(context); // إغلاق البطاقة
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => RequestScreen()),
+          );
+        },
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _currentPosition == null
-          ? Center(child: CircularProgressIndicator())
-          : Stack(
-              children: [
-                FlutterMap(
-                  options: MapOptions(center: _currentPosition!, zoom: 14),
-                  children: [
-                    TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.depannage.app',
-                    ),
-                    MarkerLayer(markers: [
+      drawer: DrawerMenu(),
+      body: Consumer2<LocationProvider, RequestProvider>(
+        builder: (context, locationProv, requestProv, _) {
+          if (locationProv.currentPosition == null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: AppTheme.primary),
+                  SizedBox(height: 16),
+                  Text(locationProv.status),
+                ],
+              ),
+            );
+          }
+
+          return Stack(
+            children: [
+              // الخريطة
+              FlutterMap(
+                options: MapOptions(
+                  center: locationProv.currentPosition,
+                  zoom: AppConfig.defaultZoom,
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.depannage.app',
+                  ),
+                  MarkerLayer(
+                    markers: [
+                      // موقع المستخدم
                       Marker(
-                        point: _currentPosition!,
+                        point: locationProv.currentPosition!,
                         width: 60,
                         height: 60,
-                        child: Icon(Icons.car_repair, color: AppTheme.primaryColor, size: 40),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withOpacity(0.9),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primary.withOpacity(0.3),
+                                blurRadius: 12,
+                              ),
+                            ],
+                          ),
+                          child: Icon(Icons.car_repair, color: Colors.white, size: 30),
+                        ),
                       ),
-                    ]),
-                  ],
-                ),
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 10,
-                  left: 16,
-                  right: 16,
-                  child: _buildStatusCard(),
-                ),
-                Positioned(
-                  bottom: 30,
-                  left: 24,
-                  right: 24,
-                  child: _buildRequestButton(),
-                ),
-              ],
-            ),
-    );
-  }
+                    ],
+                  ),
+                ],
+              ),
 
-  Widget _buildStatusCard() {
-    return Card(
-      color: Colors.white.withOpacity(0.9),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Row(
-          children: [
-            _isRequesting
-                ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : Icon(Icons.info_outline, color: AppTheme.primaryColor),
-            SizedBox(width: 12),
-            Expanded(child: Text(_status)),
-          ],
-        ),
-      ),
-    );
-  }
+              // شريط الحالة العلوي
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 10,
+                left: 16,
+                right: 16,
+                child: Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Icon(Icons.my_location, color: AppTheme.primary, size: 20),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            locationProv.status,
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        ),
+                        if (requestProv.isWaitingOffers)
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppTheme.accent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'بانتظار العروض',
+                              style: TextStyle(color: Colors.white, fontSize: 12),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
 
-  Widget _buildRequestButton() {
-    return ElevatedButton.icon(
-      onPressed: _isRequesting ? null : _requestTow,
-      icon: Icon(Icons.local_shipping),
-      label: Text('طلب ونش'),
-      style: ElevatedButton.styleFrom(
-        minimumSize: Size(double.infinity, 60),
+              // زر الطلب السفلي
+              Positioned(
+                bottom: 30,
+                left: 24,
+                right: 24,
+                child: ElevatedButton.icon(
+                  onPressed: _showRequestSheet,
+                  icon: Icon(Icons.local_shipping),
+                  label: Text('طلب ونش'),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(double.infinity, 56),
+                    backgroundColor: AppTheme.primary,
+                    shadowColor: AppTheme.primary.withOpacity(0.3),
+                    elevation: 8,
+                  ),
+                ).animate().slideY(begin: 1, duration: 600.ms, curve: Curves.easeOut),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
-// شاشة عرض مؤقتة (مكانها)
-class OffersScreen extends StatelessWidget {
-  final offer;
-  OffersScreen({this.offer});
+// بطاقة طلب الجر السفلية
+class _RequestSheet extends StatelessWidget {
+  final String vehicleType;
+  final double price;
+  final Function(String) onVehicleChanged;
+  final Function(double) onPriceChanged;
+  final VoidCallback onSubmit;
+
+  _RequestSheet({
+    required this.vehicleType,
+    required this.price,
+    required this.onVehicleChanged,
+    required this.onPriceChanged,
+    required this.onSubmit,
+  });
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('عرض سعر')),
-      body: Center(child: Text('السعر: ${offer['price']} ريال')),
+    return Container(
+      padding: EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // مقبض البطاقة
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          SizedBox(height: 24),
+          Text('طلب خدمة جر', style: Theme.of(context).textTheme.headlineSmall),
+          SizedBox(height: 24),
+          // اختيار نوع المركبة
+          VehicleSelector(
+            selected: vehicleType,
+            onChanged: onVehicleChanged,
+          ),
+          SizedBox(height: 16),
+          // إدخال السعر
+          PriceInput(
+            initialPrice: price,
+            onChanged: onPriceChanged,
+          ),
+          SizedBox(height: 24),
+          // زر تأكيد الطلب
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: onSubmit,
+              child: Text('تأكيد الطلب'),
+            ),
+          ),
+          SizedBox(height: 16),
+        ],
+      ),
     );
   }
 }
