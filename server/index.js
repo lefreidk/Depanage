@@ -21,13 +21,11 @@ app.use(express.json());
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
-// الاتصال بـ Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
 
-// الاتصال بـ Redis Upstash
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_URL,
   token: process.env.UPSTASH_REDIS_TOKEN,
@@ -36,7 +34,6 @@ const redis = new Redis({
 const GREEN_API_ID = process.env.GREEN_API_ID_INSTANCE;
 const GREEN_API_TOKEN = process.env.GREEN_API_API_TOKEN_INSTANCE;
 
-// فحص سريع للمتغيرات
 console.log('✅ تم الاتصال بـ Supabase و Redis');
 console.log('GREEN_API_ID:', GREEN_API_ID ? 'موجود' : 'مفقود');
 console.log('GREEN_API_TOKEN:', GREEN_API_TOKEN ? 'موجود' : 'مفقود');
@@ -81,11 +78,15 @@ app.post('/api/auth/send-otp', async (req, res) => {
   const { phone } = req.body;
   if (!phone) return res.status(400).json({ error: 'رقم الهاتف مطلوب' });
 
+  // تنظيف الرقم (أرقام فقط)
+  const cleanPhone = phone.replace(/[^0-9]/g, '');
   const otp = generateOtp();
+
   try {
-    await redis.set(`otp:${phone}`, otp, { ex: 300 }); // حفظ 5 دقائق
-    console.log('💾 حفظ OTP:', phone, otp);
+    await redis.set(`otp:${cleanPhone}`, otp, { ex: 300 }); // حفظ 5 دقائق
+    console.log('💾 حفظ OTP لـ', cleanPhone, 'الرمز:', otp);
     const sent = await sendWhatsAppOtp(phone, otp);
+
     if (sent) {
       res.json({ success: true, message: 'تم إرسال الرمز' });
     } else {
@@ -102,12 +103,16 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   const { phone, otp } = req.body;
   if (!phone || !otp) return res.status(400).json({ error: 'بيانات ناقصة' });
 
+  // تنظيف الرقم (أرقام فقط)
+  const cleanPhone = phone.replace(/[^0-9]/g, '');
+
   try {
-    const stored = await redis.get(`otp:${phone}`);
-    console.log('🔍 التحقق من OTP:', phone, otp, 'المخزن:', stored);
+    const stored = await redis.get(`otp:${cleanPhone}`);
+    console.log('🔍 التحقق من OTP لـ', cleanPhone, 'المدخل:', otp, 'المخزن:', stored);
+
     if (stored === otp) {
-      await redis.del(`otp:${phone}`);
-      res.json({ success: true, userId: phone, phone });
+      await redis.del(`otp:${cleanPhone}`);
+      res.json({ success: true, userId: cleanPhone, phone: cleanPhone });
     } else {
       res.status(400).json({ error: 'رمز التحقق غير صحيح' });
     }
@@ -118,24 +123,21 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 });
 
 // خريطة المستخدمين المتصلين
-const onlineUsers = new Map(); // userId -> socketId
+const onlineUsers = new Map();
 
 // أحداث Socket.IO
 io.on('connection', (socket) => {
   console.log('👤 متصل:', socket.id);
 
-  // تسجيل المستخدم
   socket.on('register', (userId) => {
     onlineUsers.set(userId.toString(), socket.id);
     socket.userId = userId;
     console.log(`✅ مستخدم ${userId} مسجل`);
   });
 
-  // مزود الخدمة يرسل موقعه
   socket.on('provider:location', async (data) => {
     try {
       const { userId, lat, lng } = data;
-      // نخزن الموقع في Redis باستخدام GEOADD
       await redis.geoadd('providers:locations', {
         longitude: lng,
         latitude: lat,
@@ -147,12 +149,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  // سائق ينشئ طلب ونش
   socket.on('request:tow', async (data) => {
     try {
       const { driverId, vehicleType, pickup, dropoff, price } = data;
 
-      // 1. حفظ الطلب في Supabase
       const { data: request, error } = await supabase
         .from('tow_requests')
         .insert([{
@@ -173,11 +173,6 @@ io.on('connection', (socket) => {
       const requestId = request.id;
       console.log('🆕 طلب جديد:', requestId);
 
-      // 2. البحث عن أقرب مزودين (نستخدم جلب الكل ثم حساب المسافة يدوياً لتفادي مشاكل geosearch)
-      const allProviders = await redis.zrange('providers:locations', 0, -1, { withScores: true });
-      // ملاحظة: zrange على geospatial قد لا يعمل؛ لذا سنستخدم طريقة بسيطة:
-      // نستخدم redis.keys أو لا نعتمد على البحث الجغرافي، نرسل الطلب لجميع المزودين المتصلين
-      // لكن الأفضل: نرسل لجميع المزودين المتصلين الموجودين في onlineUsers
       let sentCount = 0;
       for (const [providerId, socketId] of onlineUsers) {
         if (providerId !== driverId.toString()) {
@@ -187,14 +182,13 @@ io.on('connection', (socket) => {
             pickup,
             dropoff,
             price,
-            distance: 0 // يمكن حساب المسافة لاحقاً
+            distance: 0
           });
           sentCount++;
         }
       }
       console.log(`📨 تم إرسال الطلب إلى ${sentCount} مزود`);
 
-      // 3. إشعار السائق
       socket.emit('request:created', { requestId, nearbyCount: sentCount });
     } catch (e) {
       console.error('❌ خطأ في إنشاء الطلب:', e);
@@ -202,7 +196,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // مزود يرسل عرض سعر
   socket.on('offer:make', async (data) => {
     try {
       const { requestId, providerId, price } = data;
@@ -214,7 +207,6 @@ io.on('connection', (socket) => {
 
       if (error) throw error;
 
-      // جلب السائق صاحب الطلب
       const { data: request } = await supabase
         .from('tow_requests')
         .select('driver_id')
@@ -236,7 +228,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // سائق يقبل عرضاً
   socket.on('offer:accept', async (data) => {
     try {
       const { offerId, requestId, providerId } = data;
@@ -253,7 +244,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // قطع الاتصال
   socket.on('disconnect', () => {
     if (socket.userId) {
       onlineUsers.delete(socket.userId.toString());
@@ -262,7 +252,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// تشغيل الخادم
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🚀 خادم ديباناج يعمل على المنفذ ${PORT}`);
