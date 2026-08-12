@@ -6,7 +6,7 @@ class TowRequest {
   final double dropoffLat;
   final double dropoffLng;
   final double price;
-  final String status; // pending, accepted, completed, cancelled
+  String status; // <-- أزلنا final
   final DateTime createdAt;
   final String? providerName;
   final String? providerPlate;
