@@ -3,6 +3,7 @@ import 'package:pinput/pinput.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/auth_service.dart';
 import '../theme.dart';
 
 class OtpScreen extends StatefulWidget {
@@ -18,7 +19,7 @@ class _OtpScreenState extends State<OtpScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  // التحقق من الرمز
+  // التحقق من الرمز عبر الخادم
   Future<void> _verifyOtp() async {
     if (_otpController.text.length != 4) return;
 
@@ -27,27 +28,39 @@ class _OtpScreenState extends State<OtpScreen> {
       _errorMessage = null;
     });
 
-    // استدعاء موفر المصادقة للتحقق
-    final auth = context.read<AuthProvider>();
-    final success = await auth.verifyOtp(widget.phone, _otpController.text);
+    try {
+      final user = await AuthService.verifyOtp(widget.phone, _otpController.text);
+      // تحديث AuthProvider بالمستخدم الجديد
+      await context.read<AuthProvider>().loginUser(user);
 
-    if (!mounted) return;
-
-    if (success) {
+      if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-    } else {
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage = auth.error ?? 'رمز التحقق غير صحيح';
+        _errorMessage = 'رمز التحقق غير صحيح';
       });
     }
   }
 
-  // إعادة إرسال الرمز (محاكاة حالياً)
-  void _resendOtp() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('تم إعادة إرسال الرمز')),
-    );
+  // إعادة إرسال الرمز
+  Future<void> _resendOtp() async {
+    setState(() => _isLoading = true);
+    try {
+      await AuthService.sendOtp(widget.phone);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تم إعادة إرسال الرمز')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('فشل إعادة الإرسال: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -99,6 +112,11 @@ class _OtpScreenState extends State<OtpScreen> {
                 Text(
                   'تم إرسال رمز التحقق إلى ${widget.phone}',
                   style: TextStyle(color: AppTheme.textSecondary, fontSize: 16),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'الرجاء التحقق من واتساب',
+                  style: TextStyle(color: AppTheme.primary, fontSize: 14),
                 ),
                 SizedBox(height: 40),
                 // حقول إدخال الرمز
