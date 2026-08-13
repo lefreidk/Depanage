@@ -6,9 +6,9 @@ import '../providers/app_provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme.dart';
 import '../config.dart';
+import '../localizations/app_localizations.dart';
 import 'profile_screen.dart';
 import 'driver_onboarding_screen.dart';
-import 'login_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -27,22 +27,24 @@ class SettingsScreen extends StatelessWidget {
   }
 
   // تسجيل الخروج
-  Future<void> _logout(BuildContext context) async {
+  Future<void> _logout(BuildContext context, AppLocalizations lang) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
-        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
         return AlertDialog(
-          title: Text('تسجيل الخروج'),
-          content: Text('هل تريد حقاً تسجيل الخروج؟'),
+          title: Text(lang.translate('logout') ?? 'تسجيل الخروج'),
+          content: Text(lang.translate('logout_confirm') ?? 'هل تريد حقاً تسجيل الخروج؟'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text('إلغاء'),
+              child: Text(lang.translate('cancel') ?? 'إلغاء'),
             ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: Text('تسجيل الخروج', style: TextStyle(color: AppTheme.error)),
+              child: Text(
+                lang.translate('logout') ?? 'تسجيل الخروج',
+                style: TextStyle(color: AppTheme.error),
+              ),
             ),
           ],
         );
@@ -60,15 +62,16 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final appProvider = context.watch<AppProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lang = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text('الإعدادات')),
+      appBar: AppBar(title: Text(lang.translate('settings') ?? 'الإعدادات')),
       body: ListView(
         padding: EdgeInsets.all(16),
         children: [
           // ========== قسم الحساب ==========
           Text(
-            'الحساب',
+            lang.translate('account') ?? 'الحساب',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -80,8 +83,8 @@ class SettingsScreen extends StatelessWidget {
             color: isDark ? AppTheme.darkSurface : Colors.white,
             child: ListTile(
               leading: Icon(Icons.person_outline, color: AppTheme.primary),
-              title: Text('الملف الشخصي'),
-              subtitle: Text('تعديل الاسم والصورة والمركبات'),
+              title: Text(lang.translate('profile') ?? 'الملف الشخصي'),
+              subtitle: Text(lang.translate('profile_subtitle') ?? 'تعديل الاسم والصورة والمركبات'),
               trailing: Icon(Icons.chevron_left),
               onTap: () {
                 Navigator.push(
@@ -95,7 +98,7 @@ class SettingsScreen extends StatelessWidget {
 
           // ========== قسم التفضيلات ==========
           Text(
-            'التفضيلات',
+            lang.translate('preferences') ?? 'التفضيلات',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -110,7 +113,7 @@ class SettingsScreen extends StatelessWidget {
                 // اختيار اللغة
                 ListTile(
                   leading: Icon(Icons.language, color: AppTheme.primary),
-                  title: Text('اللغة'),
+                  title: Text(lang.translate('language') ?? 'اللغة'),
                   trailing: DropdownButton<String>(
                     value: appProvider.locale.languageCode,
                     underline: SizedBox(),
@@ -133,7 +136,7 @@ class SettingsScreen extends StatelessWidget {
                     isDark ? Icons.dark_mode : Icons.light_mode,
                     color: AppTheme.primary,
                   ),
-                  title: Text('الوضع الداكن'),
+                  title: Text(lang.translate('dark_mode') ?? 'الوضع الداكن'),
                   value: appProvider.themeMode == ThemeMode.dark,
                   activeColor: AppTheme.primary,
                   onChanged: (value) {
@@ -144,14 +147,13 @@ class SettingsScreen extends StatelessWidget {
                 // وضع شريك العمل
                 SwitchListTile(
                   secondary: Icon(Icons.local_shipping, color: AppTheme.primary),
-                  title: Text('وضع شريك العمل'),
-                  subtitle: Text('استقبال طلبات الجر كسائق'),
+                  title: Text(lang.translate('driver_mode') ?? 'وضع شريك العمل'),
+                  subtitle: Text(lang.translate('driver_mode_subtitle') ?? 'استقبال طلبات الجر كسائق'),
                   value: appProvider.isDriverMode,
                   activeColor: AppTheme.primary,
                   onChanged: (value) async {
                     await context.read<AppProvider>().toggleDriverMode(value);
                     if (value) {
-                      // الانتقال إلى شاشة طلب الشراكة
                       if (context.mounted) {
                         Navigator.push(
                           context,
@@ -168,7 +170,7 @@ class SettingsScreen extends StatelessWidget {
 
           // ========== قسم الدعم ==========
           Text(
-            'الدعم',
+            lang.translate('support') ?? 'الدعم',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -182,13 +184,13 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 ListTile(
                   leading: Icon(Icons.info_outline, color: AppTheme.primary),
-                  title: Text('حول التطبيق'),
-                  subtitle: Text('الإصدار ${AppConfig.appVersion}'),
+                  title: Text(lang.translate('about_app') ?? 'حول التطبيق'),
+                  subtitle: Text('${lang.translate('version') ?? 'الإصدار'} ${AppConfig.appVersion}'),
                 ),
                 Divider(height: 1),
                 ListTile(
                   leading: Icon(Icons.chat, color: Colors.green),
-                  title: Text('اتصل بنا عبر واتساب'),
+                  title: Text(lang.translate('contact_whatsapp') ?? 'اتصل بنا عبر واتساب'),
                   onTap: () => _openWhatsApp(context),
                 ),
               ],
@@ -200,10 +202,10 @@ class SettingsScreen extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: () => _logout(context),
+              onPressed: () => _logout(context, lang),
               icon: Icon(Icons.logout, color: AppTheme.error),
               label: Text(
-                'تسجيل الخروج',
+                lang.translate('logout') ?? 'تسجيل الخروج',
                 style: TextStyle(color: AppTheme.error),
               ),
               style: OutlinedButton.styleFrom(
