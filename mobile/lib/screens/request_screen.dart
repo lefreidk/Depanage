@@ -5,7 +5,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/request_provider.dart';
 import '../models/offer.dart';
 import '../theme.dart';
-import '../config.dart';
+import '../localizations/app_localizations.dart';
+import '../widgets/offer_card.dart';
 import 'tracking_screen.dart';
 
 class RequestScreen extends StatefulWidget {
@@ -27,10 +28,11 @@ class _RequestScreenState extends State<RequestScreen> {
   Widget build(BuildContext context) {
     final requestProv = context.watch<RequestProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lang = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('عروض السائقين'),
+        title: Text(lang.translate('offers') ?? 'عروض السائقين'),
         actions: [
           if (requestProv.offers.isEmpty && requestProv.isWaitingOffers)
             TextButton(
@@ -38,25 +40,31 @@ class _RequestScreenState extends State<RequestScreen> {
                 requestProv.cancelRequest();
                 Navigator.pop(context);
               },
-              child: Text('إلغاء', style: TextStyle(color: Colors.white)),
+              child: Text(
+                lang.translate('cancel') ?? 'إلغاء',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
         ],
       ),
       body: requestProv.offers.isEmpty
-          ? _buildWaitingState(isDark)
+          ? _buildWaitingState(isDark, lang)
           : ListView.builder(
               padding: EdgeInsets.all(16),
               itemCount: requestProv.offers.length,
               itemBuilder: (context, index) {
                 final offer = requestProv.offers[index];
-                return _buildOfferCard(offer, isDark);
+                return OfferCard(
+                  offer: offer,
+                  onAccept: () => _acceptOffer(offer),
+                );
               },
             ),
     );
   }
 
   // حالة انتظار العروض
-  Widget _buildWaitingState(bool isDark) {
+  Widget _buildWaitingState(bool isDark, AppLocalizations lang) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -89,7 +97,7 @@ class _RequestScreenState extends State<RequestScreen> {
           ),
           SizedBox(height: 24),
           Text(
-            'جاري البحث عن سائقين قريبين...',
+            lang.translate('waiting_offers') ?? 'جاري البحث عن سائقين قريبين...',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -98,7 +106,7 @@ class _RequestScreenState extends State<RequestScreen> {
           ),
           SizedBox(height: 8),
           Text(
-            'سيصلك إشعار فور وصول أول عرض',
+            lang.translate('offer_notification') ?? 'سيصلك إشعار فور وصول أول عرض',
             style: TextStyle(
               fontSize: 14,
               color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -107,176 +115,5 @@ class _RequestScreenState extends State<RequestScreen> {
         ],
       ),
     ).animate().fadeIn(duration: 500.ms);
-  }
-
-  // بطاقة عرض السائق
-  Widget _buildOfferCard(Offer offer, bool isDark) {
-    return Card(
-      margin: EdgeInsets.only(bottom: 12),
-      color: isDark ? AppTheme.darkSurface : Colors.white,
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // صورة السائق واسمه وتقييمه
-            Row(
-              children: [
-                // صورة السائق
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: AppTheme.primary.withOpacity(0.1),
-                  backgroundImage: offer.driverPhotoUrl != null
-                      ? NetworkImage(offer.driverPhotoUrl!)
-                      : null,
-                  child: offer.driverPhotoUrl == null
-                      ? Icon(Icons.person, color: AppTheme.primary, size: 30)
-                      : null,
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        offer.providerName,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : AppTheme.textPrimary,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Row(
-                        children: [
-                          if (offer.rating != null) ...[
-                            Icon(Icons.star, color: Colors.amber, size: 16),
-                            SizedBox(width: 4),
-                            Text(
-                              offer.rating!.toStringAsFixed(1),
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: isDark
-                                    ? AppTheme.darkTextSecondary
-                                    : AppTheme.lightTextSecondary,
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                          ],
-                          Icon(Icons.verified, color: Colors.green, size: 16),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                // السعر
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${offer.price.round()} ${AppConfig.currency}',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primary,
-                      ),
-                    ),
-                    if (offer.distanceKm != null)
-                      Text(
-                        '${offer.distanceKm!.toStringAsFixed(1)} كم',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark
-                              ? AppTheme.darkTextSecondary
-                              : AppTheme.lightTextSecondary,
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-            SizedBox(height: 12),
-            Divider(height: 1, color: Colors.grey.shade300),
-            SizedBox(height: 12),
-
-            // نوع السطحة واللوحة والوقت
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                if (offer.truckType != null) ...[
-                  Row(
-                    children: [
-                      Icon(Icons.local_shipping,
-                          color: AppTheme.primary, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        offer.truckType!,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: isDark
-                              ? AppTheme.darkTextSecondary
-                              : AppTheme.lightTextSecondary,
-                        ),
-                      ),
-                      if (offer.truckPlate != null) ...[
-                        SizedBox(width: 8),
-                        Text(
-                          offer.truckPlate!,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : AppTheme.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ] else
-                  Text(
-                    'نوع السطحة غير محدد',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDark
-                          ? AppTheme.darkTextSecondary
-                          : AppTheme.lightTextSecondary,
-                    ),
-                  ),
-                if (offer.etaMinutes != null)
-                  Row(
-                    children: [
-                      Icon(Icons.timer, color: AppTheme.primary, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        '${offer.etaMinutes} دقائق',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: isDark
-                              ? AppTheme.darkTextSecondary
-                              : AppTheme.lightTextSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-            SizedBox(height: 16),
-
-            // زر قبول العرض
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _acceptOffer(offer),
-                icon: Icon(Icons.check_circle),
-                label: Text('قبول العرض'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ).animate().slideY(begin: 0.3, duration: 400.ms, curve: Curves.easeOut);
   }
 }
