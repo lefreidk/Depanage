@@ -9,7 +9,7 @@ import '../screens/profile_screen.dart';
 import '../screens/history_screen.dart';
 import '../screens/workshops_screen.dart';
 import '../screens/settings_screen.dart';
-import '../screens/driver_onboarding_screen.dart';
+import '../screens/driver_dashboard_screen.dart'; // ← جديد
 
 class DrawerMenu extends StatelessWidget {
   const DrawerMenu({Key? key}) : super(key: key);
@@ -104,11 +104,11 @@ class DrawerMenu extends StatelessWidget {
             activeColor: AppTheme.primary,
             onChanged: (value) async {
               await context.read<AppProvider>().toggleDriverMode(value);
-              if (value) {
-                Navigator.pop(context);
+              if (value && context.mounted) {
+                Navigator.pop(context); // إغلاق القائمة
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => DriverOnboardingScreen()),
+                  MaterialPageRoute(builder: (_) => DriverDashboardScreen()),
                 );
               }
             },
@@ -126,9 +126,7 @@ class DrawerMenu extends StatelessWidget {
                 builder: (dialogContext) {
                   return AlertDialog(
                     title: Text(lang.translate('logout') ?? 'تسجيل الخروج'),
-                    content: Text(
-                      lang.translate('logout_confirm') ?? 'هل تريد حقاً تسجيل الخروج؟',
-                    ),
+                    content: Text(lang.translate('logout_confirm') ?? 'هل تريد حقاً تسجيل الخروج؟'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(dialogContext, false),
