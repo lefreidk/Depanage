@@ -4,12 +4,12 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/app_provider.dart';
 import '../theme.dart';
+import '../localizations/app_localizations.dart';
 import '../screens/profile_screen.dart';
 import '../screens/history_screen.dart';
 import '../screens/workshops_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/driver_onboarding_screen.dart';
-import '../screens/login_screen.dart';
 
 class DrawerMenu extends StatelessWidget {
   const DrawerMenu({Key? key}) : super(key: key);
@@ -19,19 +19,16 @@ class DrawerMenu extends StatelessWidget {
     final auth = context.watch<AuthProvider>();
     final appProvider = context.watch<AppProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lang = AppLocalizations.of(context);
 
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // رأس القائمة
           UserAccountsDrawerHeader(
             accountName: Text(
-              auth.user?.name ?? 'مستخدم ديباناج',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+              auth.user?.name ?? lang.translate('app_name') ?? 'ديباناج',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
             accountEmail: Text(
               auth.user?.phone ?? '',
@@ -41,25 +38,19 @@ class DrawerMenu extends StatelessWidget {
               backgroundColor: Colors.white,
               child: Icon(Icons.person, color: AppTheme.primary, size: 40),
             ),
-            decoration: BoxDecoration(
-              color: AppTheme.primary,
-            ),
+            decoration: BoxDecoration(color: AppTheme.primary),
           ),
-
-          // الرئيسية
           ListTile(
             leading: Icon(Icons.home_outlined, color: AppTheme.primary),
-            title: Text('الرئيسية'),
+            title: Text(lang.translate('home') ?? 'الرئيسية'),
             onTap: () {
               Navigator.pop(context);
               Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
             },
           ),
-
-          // الملف الشخصي
           ListTile(
             leading: Icon(Icons.person_outline, color: AppTheme.primary),
-            title: Text('الملف الشخصي'),
+            title: Text(lang.translate('profile') ?? 'الملف الشخصي'),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(
@@ -68,11 +59,9 @@ class DrawerMenu extends StatelessWidget {
               );
             },
           ),
-
-          // سجل الطلبات
           ListTile(
             leading: Icon(Icons.history, color: AppTheme.primary),
-            title: Text('سجل الطلبات'),
+            title: Text(lang.translate('history') ?? 'سجل الطلبات'),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(
@@ -81,11 +70,9 @@ class DrawerMenu extends StatelessWidget {
               );
             },
           ),
-
-          // ورشات التصليح
           ListTile(
             leading: Icon(Icons.build, color: AppTheme.primary),
-            title: Text('ورشات التصليح'),
+            title: Text(lang.translate('workshops') ?? 'ورشات التصليح'),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(
@@ -94,11 +81,9 @@ class DrawerMenu extends StatelessWidget {
               );
             },
           ),
-
-          // الإعدادات
           ListTile(
             leading: Icon(Icons.settings_outlined, color: AppTheme.primary),
-            title: Text('الإعدادات'),
+            title: Text(lang.translate('settings') ?? 'الإعدادات'),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(
@@ -107,20 +92,12 @@ class DrawerMenu extends StatelessWidget {
               );
             },
           ),
-
           Divider(),
-
-          // وضع شريك العمل
           SwitchListTile(
             secondary: Icon(Icons.local_shipping, color: AppTheme.primary),
-            title: Text(
-              'وضع شريك العمل',
-              style: TextStyle(
-                color: isDark ? Colors.white : AppTheme.textPrimary,
-              ),
-            ),
+            title: Text(lang.translate('driver_mode') ?? 'وضع شريك العمل'),
             subtitle: Text(
-              'استقبال طلبات الجر كسائق',
+              lang.translate('driver_mode_subtitle') ?? 'استقبال طلبات الجر كسائق',
               style: TextStyle(fontSize: 12),
             ),
             value: appProvider.isDriverMode,
@@ -136,14 +113,11 @@ class DrawerMenu extends StatelessWidget {
               }
             },
           ),
-
           Divider(),
-
-          // تسجيل الخروج
           ListTile(
             leading: Icon(Icons.logout, color: AppTheme.error),
             title: Text(
-              'تسجيل الخروج',
+              lang.translate('logout') ?? 'تسجيل الخروج',
               style: TextStyle(color: AppTheme.error),
             ),
             onTap: () async {
@@ -151,17 +125,19 @@ class DrawerMenu extends StatelessWidget {
                 context: context,
                 builder: (dialogContext) {
                   return AlertDialog(
-                    title: Text('تسجيل الخروج'),
-                    content: Text('هل تريد حقاً تسجيل الخروج؟'),
+                    title: Text(lang.translate('logout') ?? 'تسجيل الخروج'),
+                    content: Text(
+                      lang.translate('logout_confirm') ?? 'هل تريد حقاً تسجيل الخروج؟',
+                    ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(dialogContext, false),
-                        child: Text('إلغاء'),
+                        child: Text(lang.translate('cancel') ?? 'إلغاء'),
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(dialogContext, true),
                         child: Text(
-                          'تسجيل الخروج',
+                          lang.translate('logout') ?? 'تسجيل الخروج',
                           style: TextStyle(color: AppTheme.error),
                         ),
                       ),
