@@ -32,6 +32,10 @@ dependencies:
   intl_phone_field: ^3.2.0
   pinput: ^3.0.0
 
+  # رفع الصور وفتح الروابط
+  image_picker: ^1.0.4
+  url_launcher: ^6.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -41,8 +45,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-# إعدادات توليد الأيقونات
 flutter_launcher_icons:
   android: true
-  ios: false
-  image_path: "assets/icon/app_icon.png"
+  ios: true
+  image_path: "assets/icon/app_icon.png"غ
