@@ -1,0 +1,226 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+
+import '../providers/request_provider.dart';
+import '../theme.dart';
+import '../config.dart';
+import '../localizations/app_localizations.dart';
+
+class CompletionRatingScreen extends StatefulWidget {
+  @override
+  _CompletionRatingScreenState createState() => _CompletionRatingScreenState();
+}
+
+class _CompletionRatingScreenState extends State<CompletionRatingScreen> {
+  int _selectedRating = 0;
+  final List<String> _selectedTags = [];
+  bool _isSubmitting = false;
+
+  final List<String> _quickTags = [
+    'سرعة الاستجابة',
+    'أمان في القطر',
+    'تعامل راقي',
+    'التزام بالسعر',
+  ];
+
+  Future<void> _submitRating() async {
+    if (_selectedRating == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('الرجاء اختيار التقييم')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    await Future.delayed(Duration(milliseconds: 500));
+
+    if (!mounted) return;
+
+    context.read<RequestProvider>().completeRequest();
+
+    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final requestProv = context.watch<RequestProvider>();
+    final request = requestProv.currentRequest;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lang = AppLocalizations.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(lang.translate('complete_ride') ?? 'إنهاء الرحلة'),
+        automaticallyImplyLeading: false,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            SizedBox(height: 20),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.check_circle, color: Colors.green, size: 60),
+            ).animate().scale(duration: 600.ms, curve: Curves.elasticOut),
+            SizedBox(height: 24),
+            Text(
+              lang.translate('trip_completed') ?? 'تمت الرحلة بنجاح',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : AppTheme.textPrimary,
+              ),
+            ).animate().fadeIn(),
+            SizedBox(height: 8),
+            Text(
+              lang.translate('thank_you') ?? 'شكراً لاستخدامك ديباناج',
+              style: TextStyle(
+                fontSize: 16,
+                color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+              ),
+            ),
+            SizedBox(height: 24),
+
+            Card(
+              color: isDark ? AppTheme.darkSurface : Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Icon(Icons.payments, color: AppTheme.primary, size: 28),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            lang.translate('cash_payment') ?? 'الدفع نقداً حصراً للسائق عند الوصول',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            request != null
+                                ? '${request.price.round()} ${AppConfig.currency}'
+                                : 'غير متوفر',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: 24),
+
+            Text(
+              lang.translate('rating_question') ?? 'كيف كانت تجربتك؟',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : AppTheme.textPrimary,
+              ),
+            ),
+            SizedBox(height: 12),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(5, (index) {
+                final starIndex = index + 1;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedRating = starIndex;
+                    });
+                  },
+                  child: Icon(
+                    starIndex <= _selectedRating
+                        ? Icons.star
+                        : Icons.star_border,
+                    color: Colors.amber,
+                    size: 40,
+                  ),
+                );
+              }),
+            ).animate().scale(delay: 200.ms),
+            SizedBox(height: 16),
+
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _quickTags.map((tag) {
+                final isSelected = _selectedTags.contains(tag);
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (isSelected) {
+                        _selectedTags.remove(tag);
+                      } else {
+                        _selectedTags.add(tag);
+                      }
+                    });
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppTheme.primary
+                          : (isDark ? AppTheme.darkSurface : Colors.white),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected ? AppTheme.primary : Colors.grey.shade300,
+                      ),
+                    ),
+                    child: Text(
+                      tag,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isSelected
+                            ? Colors.white
+                            : (isDark ? Colors.white : AppTheme.textPrimary),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            SizedBox(height: 32),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isSubmitting ? null : _submitRating,
+                icon: _isSubmitting
+                    ? SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(color: Colors.white),
+                      )
+                    : Icon(Icons.send),
+                label: Text(
+                  _isSubmitting
+                      ? lang.translate('submitting') ?? 'جاري الإرسال...'
+                      : lang.translate('send_rating') ?? 'إرسال التقييم والعودة للرئيسية',
+                ),
+              ),
+            ).animate().slideY(begin: 0.3, delay: 400.ms),
+          ],
+        ),
+      ),
+    );
+  }
+}
