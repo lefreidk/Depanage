@@ -1,5 +1,5 @@
 // =====================================================
-// خادم ديباناج (server/index.js) - النسخة الكاملة
+// خادم ديباناج (server/index.js) - النسخة الكاملة مع رفع الوثائق
 // =====================================================
 
 // معالجة الأخطاء غير المتوقعة
@@ -20,14 +20,14 @@ const { Redis } = require('@upstash/redis');
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // زيادة حد حجم JSON لاستقبال Base64
 
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: '*' }
 });
 
-// ---------- الاتصال بالخدمات الخارجية ----------
+// ---------- الاتصال بالخدمات ----------
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
@@ -41,7 +41,6 @@ const redis = new Redis({
 const GREEN_API_ID = process.env.GREEN_API_ID_INSTANCE;
 const GREEN_API_TOKEN = process.env.GREEN_API_API_TOKEN_INSTANCE;
 
-// ---------- الإعدادات الثابتة ----------
 const COMMISSION_RATE = 0.15; // 15%
 const MIN_WALLET_BALANCE = 500; // 500 دج
 const PRICE_PER_KM = {
@@ -51,8 +50,6 @@ const PRICE_PER_KM = {
   truck: 900,
   heavy_truck: 900,
 };
-const ADMIN_USERNAME = 'lefreidk';
-const ADMIN_PASSWORD = '23022001@@@'; // في الإنتاج يُشفّر
 
 console.log('✅ تم الاتصال بالخدمات');
 console.log('GREEN_API_ID:', GREEN_API_ID ? 'موجود' : 'مفقود');
@@ -87,7 +84,7 @@ async function sendWhatsAppOtp(phone, otp) {
 }
 
 // ---------- تخزين OTP في الذاكرة ----------
-const otpStore = new Map(); // phone -> { otp, expiresAt }
+const otpStore = new Map();
 
 // ---------- نقطة فحص ----------
 app.get('/', (req, res) => {
@@ -98,7 +95,6 @@ app.get('/', (req, res) => {
 // 1. المصادقة (Auth)
 // =====================================================
 
-// إرسال OTP
 app.post('/api/auth/send-otp', async (req, res) => {
   const { phone } = req.body;
   if (!phone) return res.status(400).json({ error: 'رقم الهاتف مطلوب' });
@@ -116,7 +112,6 @@ app.post('/api/auth/send-otp', async (req, res) => {
   }
 });
 
-// التحقق من OTP وتسجيل الدخول / إنشاء حساب
 app.post('/api/auth/verify-otp', async (req, res) => {
   const { phone, otp } = req.body;
   if (!phone || !otp) return res.status(400).json({ error: 'بيانات ناقصة' });
@@ -130,7 +125,6 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   }
   otpStore.delete(cleanPhone);
 
-  // البحث عن المستخدم أو إنشائه
   let { data: user } = await supabase
     .from('users')
     .select('*')
@@ -153,7 +147,7 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 // تسجيل دخول الأدمن
 app.post('/api/auth/admin-login', async (req, res) => {
   const { username, password } = req.body;
-  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+  if (username === 'lefreidk' && password === '23022001@@@') {
     res.json({ success: true, message: 'تم تسجيل دخول الأدمن' });
   } else {
     res.status(401).json({ error: 'بيانات الدخول غير صحيحة' });
@@ -164,7 +158,6 @@ app.post('/api/auth/admin-login', async (req, res) => {
 // 2. طلبات الجر (Client Requests)
 // =====================================================
 
-// إنشاء طلب جر
 app.post('/api/requests/create', async (req, res) => {
   const {
     userId, vehicleCategory, pickupLat, pickupLng,
@@ -195,7 +188,6 @@ app.post('/api/requests/create', async (req, res) => {
   res.json({ success: true, requestId: request.id });
 });
 
-// سجل طلبات المستخدم
 app.get('/api/requests/history', async (req, res) => {
   const { userId } = req.query;
   if (!userId) return res.status(400).json({ error: 'معرف المستخدم مطلوب' });
@@ -228,40 +220,100 @@ app.get('/api/workshops', async (req, res) => {
 });
 
 // =====================================================
-// 4. طلب الشراكة للسائقين (Driver Onboarding)
+// 4. طلب الشراكة للسائقين (Driver Onboarding) مع رفع الوثائق
 // =====================================================
+
+// دالة لرفع صورة Base64 إلى Supabase Storage
+async function uploadDocument(driverId, type, base64String) {
+  if (!base64String) return null;
+
+  // إزالة بادئة Data URL إن وجدت
+  const cleanBase64 = base64String.replace(/^data:image\/\w+;base64,/, '');
+  const buffer = Buffer.from(cleanBase64, 'base64');
+  const fileName = `${driverId}/${type}_${Date.now()}.png`;
+
+  const { data, error } = await supabase.storage
+    .from('documents')
+    .upload(fileName, buffer, {
+      contentType: 'image/png',
+      upsert: false,
+    });
+
+  if (error) {
+    console.error('❌ فشل رفع الوثيقة:', error);
+    return null;
+  }
+
+  // الحصول على الرابط العام
+  const { data: publicUrl } = supabase.storage
+    .from('documents')
+    .getPublicUrl(fileName);
+
+  return publicUrl.publicUrl;
+}
 
 app.post('/api/drivers/apply', async (req, res) => {
   const {
     userId, fullName, licenseNumber, licenseExpiry,
-    plateNumber, vehicleYear, vehicleTypes
+    plateNumber, vehicleYear, vehicleTypes, documents
   } = req.body;
 
   if (!userId || !fullName || !licenseNumber || !plateNumber || !vehicleTypes) {
     return res.status(400).json({ error: 'بيانات السائق ناقصة' });
   }
 
-  // تحديث اسم المستخدم
-  await supabase.from('users').update({ name: fullName }).eq('id', userId);
+  try {
+    // 1. تحديث اسم المستخدم
+    await supabase.from('users').update({ name: fullName }).eq('id', userId);
 
-  // إنشاء سجل سائق
-  const { data: driver, error } = await supabase
-    .from('drivers')
-    .insert([{
-      user_id: userId,
-      license_number: licenseNumber,
-      license_expiry: licenseExpiry,
-      plate_number: plateNumber,
-      vehicle_year: vehicleYear,
-      vehicle_types: vehicleTypes,
-      status: 'pending'
-    }])
-    .select()
-    .single();
+    // 2. إنشاء سجل سائق
+    const { data: driver, error: driverError } = await supabase
+      .from('drivers')
+      .insert([{
+        user_id: userId,
+        license_number: licenseNumber,
+        license_expiry: licenseExpiry,
+        plate_number: plateNumber,
+        vehicle_year: vehicleYear,
+        vehicle_types: vehicleTypes,
+        status: 'pending'
+      }])
+      .select()
+      .single();
 
-  if (error) return res.status(500).json({ error: 'فشل إرسال الطلب' });
+    if (driverError) throw driverError;
 
-  res.json({ success: true, driverId: driver.id });
+    const driverId = driver.id;
+
+    // 3. رفع الوثائق وحفظ روابطها
+    const documentTypes = {
+      licenseFront: 'license_front',
+      licenseBack: 'license_back',
+      insurance: 'insurance',
+      idDocument: 'id_document',
+      vehiclePhoto: 'vehicle_photo',
+    };
+
+    for (const [key, type] of Object.entries(documentTypes)) {
+      const base64 = documents?.[key];
+      if (base64) {
+        const url = await uploadDocument(driverId, type, base64);
+        if (url) {
+          await supabase.from('documents').insert([{
+            driver_id: driverId,
+            type: type,
+            image_url: url,
+            verified: false,
+          }]);
+        }
+      }
+    }
+
+    res.json({ success: true, driverId: driverId });
+  } catch (e) {
+    console.error('❌ خطأ في طلب الشراكة:', e);
+    res.status(500).json({ error: 'فشل إرسال الطلب' });
+  }
 });
 
 // =====================================================
@@ -300,7 +352,6 @@ app.post('/api/admin/wallets/charge', async (req, res) => {
   const { phone, amount } = req.body;
   if (!phone || !amount) return res.status(400).json({ error: 'بيانات ناقصة' });
 
-  // البحث عن المستخدم برقم الهاتف
   const { data: user } = await supabase
     .from('users')
     .select('id')
@@ -309,7 +360,6 @@ app.post('/api/admin/wallets/charge', async (req, res) => {
 
   if (!user) return res.status(404).json({ error: 'السائق غير موجود' });
 
-  // تحديث المحفظة
   const { data: wallet } = await supabase
     .from('wallets')
     .select('balance')
@@ -324,7 +374,6 @@ app.post('/api/admin/wallets/charge', async (req, res) => {
 
   if (upsertError) return res.status(500).json({ error: 'فشل تحديث المحفظة' });
 
-  // تسجيل المعاملة
   await supabase.from('transactions').insert([{
     user_id: user.id,
     amount: parseFloat(amount),
@@ -339,7 +388,7 @@ app.post('/api/admin/wallets/charge', async (req, res) => {
 // 6. Socket.IO (التواصل الفوري)
 // =====================================================
 
-const onlineUsers = new Map(); // userId -> socketId
+const onlineUsers = new Map();
 
 io.on('connection', (socket) => {
   console.log('👤 متصل:', socket.id);
@@ -359,6 +408,7 @@ io.on('connection', (socket) => {
         latitude: lat,
         member: userId.toString()
       });
+      console.log('📍 تحديث موقع مزود:', userId, lat, lng);
     } catch (e) {
       console.error('❌ خطأ في حفظ الموقع:', e);
     }
@@ -369,7 +419,7 @@ io.on('connection', (socket) => {
     try {
       const { driverId, vehicleType, pickup, dropoff, price } = data;
 
-      const { data: request } = await supabase
+      const { data: request, error } = await supabase
         .from('tow_requests')
         .insert([{
           client_id: driverId,
@@ -383,6 +433,8 @@ io.on('connection', (socket) => {
         }])
         .select()
         .single();
+
+      if (error) throw error;
 
       let sentCount = 0;
       for (const [providerId, socketId] of onlineUsers) {
@@ -399,6 +451,7 @@ io.on('connection', (socket) => {
       }
 
       socket.emit('request:created', { requestId: request.id, nearbyCount: sentCount });
+      console.log(`📨 تم إرسال الطلب إلى ${sentCount} مزود`);
     } catch (e) {
       console.error('❌ خطأ في إنشاء الطلب:', e);
       socket.emit('error', { message: 'فشل إنشاء الطلب' });
@@ -409,11 +462,13 @@ io.on('connection', (socket) => {
   socket.on('offer:make', async (data) => {
     try {
       const { requestId, providerId, price } = data;
-      const { data: offer } = await supabase
+      const { data: offer, error } = await supabase
         .from('offers')
         .insert([{ request_id: requestId, driver_id: providerId, price }])
         .select()
         .single();
+
+      if (error) throw error;
 
       const { data: request } = await supabase
         .from('tow_requests')
@@ -430,8 +485,26 @@ io.on('connection', (socket) => {
           price
         });
       }
+      console.log('💵 عرض سعر جديد:', offer.id);
     } catch (e) {
       console.error('❌ خطأ في إرسال العرض:', e);
+    }
+  });
+
+  // عميل يقبل عرضًا
+  socket.on('offer:accept', async (data) => {
+    try {
+      const { offerId, requestId, providerId } = data;
+      await supabase.from('offers').update({ status: 'accepted' }).eq('id', offerId);
+      await supabase.from('tow_requests').update({ status: 'accepted', provider_id: providerId }).eq('id', requestId);
+
+      const providerSocketId = onlineUsers.get(providerId.toString());
+      if (providerSocketId) {
+        io.to(providerSocketId).emit('offer:accepted', { requestId });
+      }
+      console.log('✅ عرض مقبول:', offerId);
+    } catch (e) {
+      console.error('❌ خطأ في قبول العرض:', e);
     }
   });
 
