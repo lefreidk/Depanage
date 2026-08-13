@@ -16,8 +16,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _sendOtp() async {
     String phone = _phoneController.text.trim();
-    
-    // إزالة الصفر الأول إذا أدخله المستخدم، لأن البادئة +213 مضافة مسبقاً
+
+    // إزالة الصفر الأول إذا أدخله المستخدم
     if (phone.startsWith('0')) {
       phone = phone.substring(1);
     }
@@ -56,26 +56,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
-      body: SafeArea(
-        child: SingleChildScrollView(
+      body: Center(
+        child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 40),
-              Center(
-                child: Icon(
-                  Icons.local_shipping,
-                  size: 90,
-                  color: isDark ? Colors.white : AppTheme.primary,
-                ),
+              Icon(
+                Icons.local_shipping,
+                size: 80,
+                color: isDark ? Colors.white : AppTheme.primary,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               Text(
                 AppConfig.appName,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 32,
+                  fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: isDark ? Colors.white : AppTheme.primary,
                 ),
@@ -86,10 +84,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
-                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                  color: isDark
+                      ? AppTheme.darkTextSecondary
+                      : AppTheme.lightTextSecondary,
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 30),
               TextField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
@@ -136,7 +136,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         )
                       : const Text(
                           'إرسال رمز التحقق',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                 ),
               ),
