@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 // المزودون
 import 'providers/app_provider.dart';
@@ -20,7 +21,7 @@ import 'screens/settings_screen.dart';
 import 'screens/workshops_screen.dart';
 import 'screens/driver_onboarding_screen.dart';
 import 'screens/completion_rating_screen.dart';
-import 'screens/driver_dashboard_screen.dart'; // جديد
+import 'screens/driver_dashboard_screen.dart';
 
 // الترجمة
 import 'localizations/app_localizations.dart';
@@ -62,6 +63,9 @@ class DepannageApp extends StatelessWidget {
             ],
             localizationsDelegates: const [
               AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
             ],
             initialRoute: '/',
             routes: {
@@ -77,7 +81,7 @@ class DepannageApp extends StatelessWidget {
               '/workshops': (context) => WorkshopsScreen(),
               '/driver_onboarding': (context) => DriverOnboardingScreen(),
               '/completion_rating': (context) => CompletionRatingScreen(),
-              '/driver_dashboard': (context) => DriverDashboardScreen(), // جديد
+              '/driver_dashboard': (context) => DriverDashboardScreen(),
             },
           );
         },
