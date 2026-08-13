@@ -8,6 +8,8 @@ import 'package:http/http.dart' as http;
 import '../providers/auth_provider.dart';
 import '../theme.dart';
 import '../config.dart';
+import '../localizations/app_localizations.dart';
+import 'driver_dashboard_screen.dart';
 
 class DriverOnboardingScreen extends StatefulWidget {
   @override
@@ -17,17 +19,14 @@ class DriverOnboardingScreen extends StatefulWidget {
 class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // حقول المعلومات الشخصية
   final _fullNameController = TextEditingController();
   final _licenseNumberController = TextEditingController();
   final _licenseExpiryController = TextEditingController();
   final _plateNumberController = TextEditingController();
   final _vehicleYearController = TextEditingController();
 
-  // فئات السطحات المحددة
   final Set<String> _selectedVehicleTypes = {};
 
-  // صور الوثائق
   File? _licenseFront;
   File? _licenseBack;
   File? _insurance;
@@ -50,7 +49,6 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
     super.dispose();
   }
 
-  // التقاط صورة من الكاميرا أو المعرض
   Future<File?> _pickImage(ImageSource source) async {
     final XFile? image = await _picker.pickImage(
       source: source,
@@ -64,12 +62,10 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
     return null;
   }
 
-  // عرض خيارات التقاط الصورة
   Future<File?> _showImagePicker() async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Container(
           padding: EdgeInsets.all(16),
           child: Column(
@@ -96,14 +92,12 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
     return null;
   }
 
-  // تحويل الصورة إلى Base64
   String? _imageToBase64(File? image) {
     if (image == null) return null;
     final bytes = image.readAsBytesSync();
     return base64Encode(bytes);
   }
 
-  // إرسال طلب الشراكة
   Future<void> _submitApplication() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedVehicleTypes.isEmpty) {
@@ -131,7 +125,6 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
       final auth = context.read<AuthProvider>();
       final userId = auth.user?.id ?? '1';
 
-      // تجهيز بيانات الطلب مع الصور
       final body = {
         'userId': userId,
         'fullName': _fullNameController.text.trim(),
@@ -172,7 +165,6 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
     }
   }
 
-  // بناء بطاقة رفع صورة
   Widget _buildUploadCard({
     required String title,
     required File? image,
@@ -237,7 +229,6 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
     );
   }
 
-  // بناء Chips فئات المركبات
   Widget _buildCategoryChips() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Wrap(
@@ -285,10 +276,11 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final auth = context.watch<AuthProvider>();
+    final lang = AppLocalizations.of(context);
 
     if (_submittedSuccessfully) {
       return Scaffold(
-        appBar: AppBar(title: Text('طلب الشراكة')),
+        appBar: AppBar(title: Text(lang.translate('driver_onboarding') ?? 'طلب الشراكة')),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -298,7 +290,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
                 Icon(Icons.check_circle, color: Colors.green, size: 80),
                 SizedBox(height: 24),
                 Text(
-                  'تم إرسال طلبك بنجاح',
+                  lang.translate('request_sent') ?? 'تم إرسال طلبك بنجاح',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -307,7 +299,8 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'جاري مراجعة الوثائق من قِبل الإدارة وسيتم تفعيل حسابك في أقرب وقت',
+                  lang.translate('pending_state') ??
+                      'جاري مراجعة الوثائق من قِبل الإدارة وسيتم تفعيل حسابك في أقرب وقت',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
@@ -317,9 +310,12 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
                 SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => DriverDashboardScreen()),
+                    );
                   },
-                  child: Text('العودة للرئيسية'),
+                  child: Text(lang.translate('go_to_dashboard') ?? 'الانتقال إلى لوحة السائق'),
                 ),
               ],
             ),
@@ -329,7 +325,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text('طلب الشراكة للسائقين')),
+      appBar: AppBar(title: Text(lang.translate('driver_onboarding') ?? 'طلب الشراكة للسائقين')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -337,9 +333,8 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ========== المعلومات الشخصية ==========
               Text(
-                'المعلومات الشخصية والمركبة',
+                lang.translate('personal_info') ?? 'المعلومات الشخصية والمركبة',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -348,66 +343,60 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
               ),
               SizedBox(height: 16),
 
-              // الاسم الكامل
               TextFormField(
                 controller: _fullNameController,
                 decoration: InputDecoration(
-                  labelText: 'الاسم الكامل',
+                  labelText: lang.translate('full_name') ?? 'الاسم الكامل',
                   prefixIcon: Icon(Icons.person),
                 ),
                 validator: (v) => v!.trim().isEmpty ? 'مطلوب' : null,
               ),
               SizedBox(height: 12),
 
-              // رقم الهاتف (غير قابل للتعديل)
               TextFormField(
                 initialValue: auth.user?.phone ?? '',
                 readOnly: true,
                 decoration: InputDecoration(
-                  labelText: 'رقم الهاتف',
+                  labelText: lang.translate('phone') ?? 'رقم الهاتف',
                   prefixIcon: Icon(Icons.phone),
                 ),
               ),
               SizedBox(height: 12),
 
-              // رقم رخصة القيادة
               TextFormField(
                 controller: _licenseNumberController,
                 decoration: InputDecoration(
-                  labelText: 'رقم رخصة القيادة',
+                  labelText: lang.translate('license_number') ?? 'رقم رخصة القيادة',
                   prefixIcon: Icon(Icons.badge),
                 ),
                 validator: (v) => v!.trim().isEmpty ? 'مطلوب' : null,
               ),
               SizedBox(height: 12),
 
-              // تاريخ صلاحية الرخصة
               TextFormField(
                 controller: _licenseExpiryController,
                 decoration: InputDecoration(
-                  labelText: 'تاريخ صلاحية الرخصة (YYYY-MM-DD)',
+                  labelText: lang.translate('license_expiry') ?? 'تاريخ صلاحية الرخصة (YYYY-MM-DD)',
                   prefixIcon: Icon(Icons.calendar_today),
                 ),
                 validator: (v) => v!.trim().isEmpty ? 'مطلوب' : null,
               ),
               SizedBox(height: 12),
 
-              // رقم لوحة السطحة
               TextFormField(
                 controller: _plateNumberController,
                 decoration: InputDecoration(
-                  labelText: 'رقم لوحة السطحة',
+                  labelText: lang.translate('plate_number') ?? 'رقم لوحة السطحة',
                   prefixIcon: Icon(Icons.local_shipping),
                 ),
                 validator: (v) => v!.trim().isEmpty ? 'مطلوب' : null,
               ),
               SizedBox(height: 12),
 
-              // سنة الصنع
               TextFormField(
                 controller: _vehicleYearController,
                 decoration: InputDecoration(
-                  labelText: 'سنة الصنع',
+                  labelText: lang.translate('year') ?? 'سنة الصنع',
                   prefixIcon: Icon(Icons.date_range),
                 ),
                 keyboardType: TextInputType.number,
@@ -415,9 +404,8 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
               ),
               SizedBox(height: 16),
 
-              // فئات السطحات المتاحة
               Text(
-                'فئات السطحات المتاحة للقطر',
+                lang.translate('vehicle_types') ?? 'فئات السطحات المتاحة للقطر',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -428,9 +416,8 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
               _buildCategoryChips(),
               SizedBox(height: 24),
 
-              // ========== رفع الوثائق ==========
               Text(
-                'رفع الوثائق والثبوتيات',
+                lang.translate('upload_docs') ?? 'رفع الوثائق والثبوتيات',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -440,7 +427,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
               SizedBox(height: 16),
 
               _buildUploadCard(
-                title: 'رخصة القيادة (الأمام)',
+                title: lang.translate('license_front') ?? 'رخصة القيادة (الأمام)',
                 image: _licenseFront,
                 onTap: () async {
                   final img = await _showImagePicker();
@@ -449,7 +436,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
               ),
               SizedBox(height: 8),
               _buildUploadCard(
-                title: 'رخصة القيادة (الخلف)',
+                title: lang.translate('license_back') ?? 'رخصة القيادة (الخلف)',
                 image: _licenseBack,
                 onTap: () async {
                   final img = await _showImagePicker();
@@ -458,7 +445,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
               ),
               SizedBox(height: 8),
               _buildUploadCard(
-                title: 'وثيقة التأمين',
+                title: lang.translate('insurance') ?? 'وثيقة التأمين',
                 image: _insurance,
                 onTap: () async {
                   final img = await _showImagePicker();
@@ -467,7 +454,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
               ),
               SizedBox(height: 8),
               _buildUploadCard(
-                title: 'بطاقة الهوية / السجل التجاري',
+                title: lang.translate('id_document') ?? 'بطاقة الهوية / السجل التجاري',
                 image: _idDocument,
                 onTap: () async {
                   final img = await _showImagePicker();
@@ -476,7 +463,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
               ),
               SizedBox(height: 8),
               _buildUploadCard(
-                title: 'صورة السطحة (خارجية)',
+                title: lang.translate('vehicle_photo') ?? 'صورة السطحة (خارجية)',
                 image: _vehiclePhoto,
                 onTap: () async {
                   final img = await _showImagePicker();
@@ -485,9 +472,8 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
               ),
               SizedBox(height: 24),
 
-              // ========== الشروط والأحكام ==========
               Text(
-                'الشروط والأحكام',
+                lang.translate('terms') ?? 'الشروط والأحكام',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -503,7 +489,8 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
                   border: Border.all(color: Colors.grey.shade300),
                 ),
                 child: Text(
-                  'بموجب هذا الطلب، تقر بأن جميع البيانات صحيحة وتوافق على نظام الرصيد المسبق للعمولة. سيتم قبول الطلبات بناءً على توفر رصيد كافٍ في محفظتك لتغطية نسبة التطبيق عن الرحلات النقدية.',
+                  lang.translate('terms_text') ??
+                      'بموجب هذا الطلب، تقر بأن جميع البيانات صحيحة وتوافق على نظام الرصيد المسبق للعمولة. سيتم قبول الطلبات بناءً على توفر رصيد كافٍ في محفظتك لتغطية نسبة التطبيق عن الرحلات النقدية.',
                   style: TextStyle(
                     fontSize: 14,
                     color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -523,7 +510,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'أوافق على الشروط والأحكام',
+                      lang.translate('agree_terms') ?? 'أوافق على الشروط والأحكام',
                       style: TextStyle(
                         color: isDark ? Colors.white : AppTheme.textPrimary,
                       ),
@@ -533,7 +520,6 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
               ),
               SizedBox(height: 24),
 
-              // ========== زر الإرسال ==========
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -546,7 +532,9 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
                         )
                       : Icon(Icons.send),
                   label: Text(
-                    _isSubmitting ? 'جاري الإرسال...' : 'إرسال طلب الشراكة',
+                    _isSubmitting
+                        ? lang.translate('submitting') ?? 'جاري الإرسال...'
+                        : lang.translate('submit_request') ?? 'إرسال طلب الشراكة',
                   ),
                 ),
               ),
