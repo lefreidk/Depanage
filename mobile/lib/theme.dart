@@ -2,35 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // الألوان الأساسية
   static const Color primary = Color(0xFF1E88E5);
   static const Color secondary = Color(0xFF26A69A);
   static const Color accent = Color(0xFFFFA726);
   static const Color error = Color(0xFFE53935);
 
-  // ألوان الوضع الفاتح
   static const Color lightBackground = Color(0xFFF5F7FA);
   static const Color lightSurface = Colors.white;
   static const Color lightTextPrimary = Color(0xFF212121);
   static const Color lightTextSecondary = Color(0xFF757575);
 
-  // ألوان الوضع الداكن
   static const Color darkBackground = Color(0xFF121212);
   static const Color darkSurface = Color(0xFF1E1E1E);
   static const Color darkTextPrimary = Colors.white;
   static const Color darkTextSecondary = Color(0xFFB0B0B0);
 
-  // ثوابت نصية عامة (للوضع الفاتح)
   static const Color textPrimary = lightTextPrimary;
   static const Color textSecondary = lightTextSecondary;
 
-  // الحصول على الثيم الفاتح
   static ThemeData get lightTheme => _buildTheme(Brightness.light);
-
-  // الحصول على الثيم الداكن
   static ThemeData get darkTheme => _buildTheme(Brightness.dark);
 
-  // بناء الثيم حسب نوع الوضع
   static ThemeData _buildTheme(Brightness brightness) {
     final bool isDark = brightness == Brightness.dark;
 
@@ -168,12 +160,14 @@ class AppTheme {
         ),
       ),
       switchTheme: SwitchThemeData(
-        activeColor: primary,
-        activeTrackColor: primary.withOpacity(0.5),
+        thumbColor: MaterialStateProperty.all(primary),
+        trackColor: MaterialStateProperty.all(primary.withOpacity(0.5)),
       ),
       sliderTheme: SliderThemeData(
-        activeColor: primary,
-        inactiveColor: textSecondary.withOpacity(0.2),
+        activeTrackColor: primary,
+        inactiveTrackColor: textSecondary.withOpacity(0.2),
+        thumbColor: primary,
+        overlayColor: primary.withOpacity(0.2),
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
         color: primary,
