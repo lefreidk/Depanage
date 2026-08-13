@@ -4,17 +4,15 @@ import '../config.dart';
 class SocketService {
   static IO.Socket? _socket;
 
-  // إنشاء اتصال Socket.IO بالخادم
+  // الحصول على كائن Socket (إنشاء إذا لم يوجد)
   static IO.Socket get socket {
-    if (_socket == null) {
-      _socket = IO.io(
-        AppConfig.serverUrl,
-        <String, dynamic>{
-          'transports': ['websocket'],
-          'autoConnect': true,
-        },
-      );
-    }
+    _socket ??= IO.io(
+      AppConfig.serverUrl,
+      <String, dynamic>{
+        'transports': ['websocket'],
+        'autoConnect': true,
+      },
+    );
     return _socket!;
   }
 
@@ -32,12 +30,12 @@ class SocketService {
     }
   }
 
-  // تسجيل المستخدم في غرفة خاصة لاستقبال الأحداث
+  // تسجيل المستخدم (بمعرّفه) لاستقبال الأحداث الخاصة به
   static void registerUser(String userId) {
     socket.emit('register', userId);
   }
 
-  // إرسال طلب ونش إلى الخادم
+  // إرسال طلب ونش من العميل
   static void emitTowRequest({
     required String driverId,
     required String vehicleType,
@@ -56,7 +54,7 @@ class SocketService {
     });
   }
 
-  // إرسال عرض سعر (من مزود الخدمة)
+  // إرسال عرض سعر من السائق
   static void emitOffer({
     required String requestId,
     required String providerId,
@@ -69,7 +67,7 @@ class SocketService {
     });
   }
 
-  // قبول عرض سعر (من السائق)
+  // قبول عرض سعر من العميل
   static void emitAcceptOffer({
     required String offerId,
     required String requestId,
@@ -79,6 +77,19 @@ class SocketService {
       'offerId': offerId,
       'requestId': requestId,
       'providerId': providerId,
+    });
+  }
+
+  // تحديث موقع السائق (يستخدم من تطبيق السائق)
+  static void emitProviderLocation({
+    required String userId,
+    required double lat,
+    required double lng,
+  }) {
+    socket.emit('provider:location', {
+      'userId': userId,
+      'lat': lat,
+      'lng': lng,
     });
   }
 }
