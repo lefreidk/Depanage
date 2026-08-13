@@ -111,6 +111,10 @@ class AppLocalizations {
       'call_failed': 'تعذر فتح الهاتف',
       'offer_notification': 'سيصلك إشعار فور وصول أول عرض',
       'minutes': 'دقائق',
+      'driver_dashboard': 'لوحة السائق',
+      'no_incoming_requests': 'لا توجد طلبات قادمة حالياً',
+      'send_offer': 'إرسال عرض سعر',
+      'send': 'إرسال',
     },
     'fr': {
       'app_name': 'Dépannage',
@@ -211,6 +215,10 @@ class AppLocalizations {
       'call_failed': 'Impossible d\'ouvrir le téléphone',
       'offer_notification': 'Vous serez notifié dès la première offre',
       'minutes': 'minutes',
+      'driver_dashboard': 'Tableau de bord du chauffeur',
+      'no_incoming_requests': 'Aucune demande entrante actuellement',
+      'send_offer': 'Envoyer une offre',
+      'send': 'Envoyer',
     },
     'en': {
       'app_name': 'Depannage',
@@ -311,6 +319,10 @@ class AppLocalizations {
       'call_failed': 'Unable to open phone',
       'offer_notification': 'You will be notified as soon as the first offer arrives',
       'minutes': 'minutes',
+      'driver_dashboard': 'Driver dashboard',
+      'no_incoming_requests': 'No incoming requests currently',
+      'send_offer': 'Send offer',
+      'send': 'Send',
     },
   };
 
