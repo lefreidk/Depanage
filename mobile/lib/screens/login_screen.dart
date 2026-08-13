@@ -15,15 +15,21 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   Future<void> _sendOtp() async {
-    final phone = _phoneController.text.trim();
+    String phone = _phoneController.text.trim();
+    
+    // إزالة الصفر الأول إذا أدخله المستخدم، لأن البادئة +213 مضافة مسبقاً
+    if (phone.startsWith('0')) {
+      phone = phone.substring(1);
+    }
+
     if (phone.length < 9) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('الرجاء إدخال رقم جوال صحيح')),
+        const SnackBar(content: Text('الرجاء إدخال رقم جوال صحيح')),
       );
       return;
     }
 
-    final fullPhone = phone.startsWith('+') ? phone : '+213$phone';
+    final fullPhone = '+213$phone';
 
     setState(() => _isLoading = true);
 
@@ -50,19 +56,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
-      body: Center(
-        child: Padding(
+      body: SafeArea(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(
-                Icons.local_shipping,
-                size: 100,
-                color: isDark ? Colors.white : AppTheme.primary,
+              const SizedBox(height: 40),
+              Center(
+                child: Icon(
+                  Icons.local_shipping,
+                  size: 90,
+                  color: isDark ? Colors.white : AppTheme.primary,
+                ),
               ),
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
               Text(
                 AppConfig.appName,
                 textAlign: TextAlign.center,
@@ -72,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: isDark ? Colors.white : AppTheme.primary,
                 ),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 'أدخل رقم جوالك للمتابعة',
                 textAlign: TextAlign.center,
@@ -81,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
                 ),
               ),
-              SizedBox(height: 32),
+              const SizedBox(height: 40),
               TextField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
@@ -91,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 decoration: InputDecoration(
                   labelText: 'رقم الهاتف',
-                  hintText: 'مثال: 0550123456',
+                  hintText: '550123456',
                   prefixText: '+213 ',
                   prefixStyle: TextStyle(
                     fontSize: 18,
@@ -112,19 +120,25 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide(color: AppTheme.primary, width: 2),
                   ),
-                  contentPadding: EdgeInsets.all(18),
+                  contentPadding: const EdgeInsets.all(18),
                 ),
               ),
-              SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _sendOtp,
-                child: _isLoading
-                    ? SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(color: Colors.white),
-                      )
-                    : Text('إرسال رمز التحقق'),
+              const SizedBox(height: 24),
+              SizedBox(
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _sendOtp,
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(color: Colors.white),
+                        )
+                      : const Text(
+                          'إرسال رمز التحقق',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                ),
               ),
             ],
           ),
