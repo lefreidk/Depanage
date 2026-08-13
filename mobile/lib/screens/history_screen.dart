@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../providers/request_provider.dart';
 import '../theme.dart';
 import '../config.dart';
+import '../localizations/app_localizations.dart';
 import '../models/tow_request.dart';
 import 'request_detail_screen.dart';
 
@@ -41,6 +43,7 @@ class HistoryScreen extends StatelessWidget {
   // فتح تفاصيل الرحلة
   void _showTripDetails(BuildContext context, TowRequest request) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lang = AppLocalizations.of(context);
 
     showModalBottomSheet(
       context: context,
@@ -57,7 +60,6 @@ class HistoryScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // مقبض
               Center(
                 child: Container(
                   width: 40,
@@ -70,9 +72,8 @@ class HistoryScreen extends StatelessWidget {
               ),
               SizedBox(height: 24),
 
-              // عنوان
               Text(
-                'تفاصيل الرحلة',
+                lang.translate('trip_details') ?? 'تفاصيل الرحلة',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -81,44 +82,42 @@ class HistoryScreen extends StatelessWidget {
               ),
               SizedBox(height: 16),
 
-              // المسار
               _buildInfoRow(
                 icon: Icons.car_repair,
-                label: 'الانطلاق',
-                value: 'موقع العطل',
+                label: lang.translate('pickup') ?? 'الانطلاق',
+                value: lang.translate('pickup_location') ?? 'موقع العطل',
                 isDark: isDark,
               ),
               SizedBox(height: 8),
               _buildInfoRow(
                 icon: Icons.flag,
-                label: 'الوصول',
-                value: 'الوجهة النهائية',
+                label: lang.translate('dropoff') ?? 'الوصول',
+                value: lang.translate('dropoff_location') ?? 'الوجهة النهائية',
                 isDark: isDark,
               ),
               Divider(height: 24, color: Colors.grey.shade300),
               _buildInfoRow(
                 icon: Icons.person,
-                label: 'السائق',
-                value: request.providerName ?? 'غير محدد',
+                label: lang.translate('driver') ?? 'السائق',
+                value: request.providerName ?? lang.translate('not_specified') ?? 'غير محدد',
                 isDark: isDark,
               ),
               SizedBox(height: 8),
               _buildInfoRow(
                 icon: Icons.local_shipping,
-                label: 'اللوحة',
-                value: request.providerPlate ?? 'غير محدد',
+                label: lang.translate('plate_number') ?? 'اللوحة',
+                value: request.providerPlate ?? lang.translate('not_specified') ?? 'غير محدد',
                 isDark: isDark,
               ),
               SizedBox(height: 8),
               _buildInfoRow(
                 icon: Icons.payments,
-                label: 'التكلفة',
+                label: lang.translate('cost') ?? 'التكلفة',
                 value: '${request.price.round()} ${AppConfig.currency}',
                 isDark: isDark,
               ),
               SizedBox(height: 24),
 
-              // زر إعادة الطلب
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -127,12 +126,11 @@ class HistoryScreen extends StatelessWidget {
                     _reorder(context, request);
                   },
                   icon: Icon(Icons.replay),
-                  label: Text('إعادة الطلب'),
+                  label: Text(lang.translate('reorder') ?? 'إعادة الطلب'),
                 ),
               ),
               SizedBox(height: 8),
 
-              // زر الاتصال بالدعم
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
@@ -141,7 +139,7 @@ class HistoryScreen extends StatelessWidget {
                     _openSupportWhatsApp(context);
                   },
                   icon: Icon(Icons.support_agent, color: Colors.green),
-                  label: Text('الاتصال بالدعم الفني'),
+                  label: Text(lang.translate('call_support') ?? 'الاتصال بالدعم الفني'),
                 ),
               ),
             ],
@@ -185,7 +183,6 @@ class HistoryScreen extends StatelessWidget {
     );
   }
 
-  // أيقونة فئة المركبة
   IconData _getVehicleIcon(String category) {
     switch (category) {
       case 'motorcycle':
@@ -208,10 +205,11 @@ class HistoryScreen extends StatelessWidget {
     final requestProv = context.watch<RequestProvider>();
     final history = requestProv.history;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lang = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('سجل الطلبات'),
+        title: Text(lang.translate('history') ?? 'سجل الطلبات'),
         actions: [
           if (history.isNotEmpty)
             IconButton(
@@ -220,19 +218,22 @@ class HistoryScreen extends StatelessWidget {
                 showDialog(
                   context: context,
                   builder: (_) => AlertDialog(
-                    title: Text('مسح السجل'),
-                    content: Text('هل تريد مسح جميع الطلبات؟'),
+                    title: Text(lang.translate('clear_history') ?? 'مسح السجل'),
+                    content: Text(lang.translate('clear_history_confirm') ?? 'هل تريد مسح جميع الطلبات؟'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: Text('إلغاء'),
+                        child: Text(lang.translate('cancel') ?? 'إلغاء'),
                       ),
                       TextButton(
                         onPressed: () {
                           context.read<RequestProvider>().clearHistory();
                           Navigator.pop(context);
                         },
-                        child: Text('مسح', style: TextStyle(color: AppTheme.error)),
+                        child: Text(
+                          lang.translate('clear') ?? 'مسح',
+                          style: TextStyle(color: AppTheme.error),
+                        ),
                       ),
                     ],
                   ),
@@ -249,7 +250,7 @@ class HistoryScreen extends StatelessWidget {
                   Icon(Icons.history, size: 80, color: Colors.grey[300]),
                   SizedBox(height: 16),
                   Text(
-                    'لا توجد طلبات سابقة',
+                    lang.translate('no_history') ?? 'لا توجد طلبات سابقة',
                     style: TextStyle(
                       fontSize: 16,
                       color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -263,15 +264,16 @@ class HistoryScreen extends StatelessWidget {
               itemCount: history.length,
               itemBuilder: (context, index) {
                 final request = history[index];
-                return _buildTripCard(context, request, isDark);
+                return _buildTripCard(context, request, isDark, lang);
               },
             ),
     );
   }
 
-  // بطاقة الرحلة
-  Widget _buildTripCard(BuildContext context, TowRequest request, bool isDark) {
-    final statusText = request.status == 'completed' ? 'مكتملة' : 'ملغية';
+  Widget _buildTripCard(BuildContext context, TowRequest request, bool isDark, AppLocalizations lang) {
+    final statusText = request.status == 'completed'
+        ? lang.translate('completed') ?? 'مكتملة'
+        : lang.translate('cancelled') ?? 'ملغية';
     final statusColor = request.status == 'completed' ? Colors.green : AppTheme.error;
 
     return Card(
@@ -285,7 +287,6 @@ class HistoryScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // التاريخ والحالة
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -329,7 +330,6 @@ class HistoryScreen extends StatelessWidget {
               ),
               SizedBox(height: 12),
 
-              // أيقونة الفئة والتكلفة
               Row(
                 children: [
                   Icon(
@@ -352,7 +352,7 @@ class HistoryScreen extends StatelessWidget {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'موقع العطل → الوجهة',
+                          '${lang.translate('pickup') ?? 'موقع العطل'} → ${lang.translate('dropoff') ?? 'الوجهة'}',
                           style: TextStyle(
                             fontSize: 13,
                             color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
