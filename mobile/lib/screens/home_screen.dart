@@ -7,7 +7,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/location_provider.dart';
 import '../providers/request_provider.dart';
 import '../providers/auth_provider.dart';
-import '../providers/app_provider.dart';
 import '../theme.dart';
 import '../config.dart';
 import '../localizations/app_localizations.dart';
@@ -21,6 +20,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String _selectedCategory = 'car';
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -37,12 +38,15 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    final searchText = _searchController.text.trim();
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => RequestDetailScreen(
           vehicleCategory: _selectedCategory,
           pickupLocation: locationProv.currentPosition!,
+          initialDropoffText: searchText,
         ),
       ),
     );
@@ -55,6 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final lang = AppLocalizations.of(context);
 
     return Scaffold(
+      key: _scaffoldKey,
       drawer: DrawerMenu(),
       body: locationProv.currentPosition == null
           ? Center(
@@ -104,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
 
-                // زر القائمة الجانبية
+                // زر القائمة
                 Positioned(
                   top: MediaQuery.of(context).padding.top + 10,
                   right: 16,
@@ -114,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: IconButton(
                       icon: Icon(Icons.menu, color: AppTheme.primary),
                       onPressed: () {
-                        Scaffold.of(context).openDrawer();
+                        _scaffoldKey.currentState!.openDrawer();
                       },
                     ),
                   ),
@@ -128,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: _buildVehicleSelector(isDark, lang),
                 ),
 
-                // شريط البحث الموحد
+                // شريط البحث (حقل كتابة حقيقي)
                 Positioned(
                   bottom: 30,
                   left: 16,
@@ -211,28 +216,36 @@ class _HomeScreenState extends State<HomeScreen> {
     return Card(
       elevation: 4,
       color: isDark ? AppTheme.darkSurface : Colors.white,
-      child: InkWell(
-        onTap: _openRequestDetail,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          child: Row(
-            children: [
-              Icon(Icons.search, color: AppTheme.primary),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  lang.translate('search_hint') ?? 'ما الوجهة وما التكلفة؟',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          children: [
+            Icon(Icons.search, color: AppTheme.primary),
+            SizedBox(width: 12),
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isDark ? Colors.white : AppTheme.textPrimary,
                 ),
+                decoration: InputDecoration(
+                  hintText: lang.translate('search_hint') ?? 'ما الوجهة وما التكلفة؟',
+                  hintStyle: TextStyle(
+                    color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                  ),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                ),
+                onSubmitted: (_) => _openRequestDetail(),
               ),
-              Icon(Icons.arrow_forward, color: AppTheme.primary),
-            ],
-          ),
+            ),
+            IconButton(
+              icon: Icon(Icons.arrow_forward, color: AppTheme.primary),
+              onPressed: _openRequestDetail,
+            ),
+          ],
         ),
       ),
     ).animate().slideY(begin: 1, duration: 600.ms, curve: Curves.easeOut);
