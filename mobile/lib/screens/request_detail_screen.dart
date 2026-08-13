@@ -9,6 +9,7 @@ import '../providers/request_provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme.dart';
 import '../config.dart';
+import '../localizations/app_localizations.dart';
 import 'request_screen.dart';
 
 class RequestDetailScreen extends StatefulWidget {
@@ -35,22 +36,18 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   @override
   void initState() {
     super.initState();
-    // في البداية لا توجد وجهة محددة، السعر صفر
   }
 
-  // حساب المسافة بين نقطتين
   double _calculateDistance(LatLng start, LatLng end) {
     final distance = const Distance();
     return distance.as(LengthUnit.Kilometer, start, end);
   }
 
-  // حساب السعر المقترح حسب الفئة والمسافة
   double _calculateSuggestedPrice(double distanceKm) {
     final pricePerKm = AppConfig.pricePerKm[widget.vehicleCategory] ?? 500;
     return (distanceKm * pricePerKm).roundToDouble();
   }
 
-  // عند الضغط على الخريطة لتحديد الوجهة
   void _handleMapTap(LatLng point) {
     setState(() {
       _dropoffLocation = point;
@@ -60,14 +57,12 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     });
   }
 
-  // تعديل السعر
   void _adjustPrice(double delta) {
     setState(() {
       _selectedPrice = (_selectedPrice + delta).clamp(0, 100000).toDouble();
     });
   }
 
-  // نشر الطلب
   Future<void> _publishRequest() async {
     if (_dropoffLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -82,7 +77,6 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       final requestProv = context.read<RequestProvider>();
       final authProv = context.read<AuthProvider>();
 
-      // إنشاء الطلب وإرساله عبر Socket.IO
       await requestProv.createRequest(
         driverId: authProv.user?.id ?? '1',
         vehicleType: widget.vehicleCategory,
@@ -95,7 +89,6 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
 
       if (!mounted) return;
 
-      // الانتقال إلى شاشة العروض
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => RequestScreen()),
@@ -113,14 +106,14 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lang = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('تفاصيل الطلب'),
+        title: Text(lang.translate('request_details') ?? 'تفاصيل الطلب'),
       ),
       body: Stack(
         children: [
-          // الخريطة التفاعلية
           FlutterMap(
             options: MapOptions(
               center: widget.pickupLocation,
@@ -134,7 +127,6 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
               ),
               MarkerLayer(
                 markers: [
-                  // موقع التعطل
                   Marker(
                     point: widget.pickupLocation,
                     width: 60,
@@ -153,7 +145,6 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                       child: Icon(Icons.car_repair, color: Colors.white, size: 30),
                     ),
                   ),
-                  // الوجهة إن وجدت
                   if (_dropoffLocation != null)
                     Marker(
                       point: _dropoffLocation!,
@@ -212,8 +203,9 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                       SizedBox(width: 8),
                       Text(
                         _dropoffLocation == null
-                            ? 'اضغط على الخريطة لتحديد الوجهة'
-                            : 'المسافة: ${_distanceKm.toStringAsFixed(1)} كم',
+                            ? lang.translate('tap_to_set_destination') ??
+                                'اضغط على الخريطة لتحديد الوجهة'
+                            : '${lang.translate('distance') ?? 'المسافة'}: ${_distanceKm.toStringAsFixed(1)} كم',
                         style: TextStyle(
                           fontSize: 16,
                           color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -235,7 +227,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                       Column(
                         children: [
                           Text(
-                            'السعر',
+                            lang.translate('price') ?? 'السعر',
                             style: TextStyle(
                               fontSize: 14,
                               color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -276,8 +268,9 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                           : Icon(Icons.campaign),
                       label: Text(
                         _isPublishing
-                            ? 'جاري النشر...'
-                            : 'نشر الطلب للسائقين القريبين',
+                            ? (lang.translate('publishing') ?? 'جاري النشر...')
+                            : (lang.translate('publish_request') ??
+                                'نشر الطلب للسائقين القريبين'),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.accent,
