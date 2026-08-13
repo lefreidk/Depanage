@@ -20,6 +20,10 @@ class AppTheme {
   static const Color darkTextPrimary = Colors.white;
   static const Color darkTextSecondary = Color(0xFFB0B0B0);
 
+  // ثوابت نصية عامة (للوضع الفاتح)
+  static const Color textPrimary = lightTextPrimary;
+  static const Color textSecondary = lightTextSecondary;
+
   // الحصول على الثيم الفاتح
   static ThemeData get lightTheme => _buildTheme(Brightness.light);
 
@@ -30,7 +34,6 @@ class AppTheme {
   static ThemeData _buildTheme(Brightness brightness) {
     final bool isDark = brightness == Brightness.dark;
 
-    // تحديد الألوان حسب الوضع
     final Color backgroundColor = isDark ? darkBackground : lightBackground;
     final Color surfaceColor = isDark ? darkSurface : lightSurface;
     final Color textPrimary = isDark ? darkTextPrimary : lightTextPrimary;
@@ -53,8 +56,6 @@ class AppTheme {
         bodyColor: textPrimary,
         displayColor: textPrimary,
       ),
-
-      // شريط التطبيق
       appBarTheme: AppBarTheme(
         elevation: 0,
         centerTitle: true,
@@ -66,8 +67,6 @@ class AppTheme {
           color: Colors.white,
         ),
       ),
-
-      // أزرار مرتفعة
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primary,
@@ -83,8 +82,6 @@ class AppTheme {
           ),
         ),
       ),
-
-      // أزرار محددة
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: primary,
@@ -99,8 +96,6 @@ class AppTheme {
           ),
         ),
       ),
-
-      // حقول الإدخال
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surfaceColor,
@@ -124,8 +119,6 @@ class AppTheme {
         labelStyle: TextStyle(color: textSecondary),
         hintStyle: TextStyle(color: textSecondary),
       ),
-
-      // البطاقات
       cardTheme: CardThemeData(
         elevation: isDark ? 1 : 2,
         color: surfaceColor,
@@ -134,8 +127,6 @@ class AppTheme {
         ),
         clipBehavior: Clip.antiAlias,
       ),
-
-      // الزر العائم
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: primary,
         foregroundColor: Colors.white,
@@ -144,8 +135,6 @@ class AppTheme {
           borderRadius: BorderRadius.circular(20),
         ),
       ),
-
-      // شريط التنقل السفلي
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         selectedItemColor: primary,
         unselectedItemColor: textSecondary,
@@ -153,14 +142,10 @@ class AppTheme {
         backgroundColor: surfaceColor,
         elevation: 8,
       ),
-
-      // القوائم
       listTileTheme: ListTileThemeData(
         iconColor: primary,
         textColor: textPrimary,
       ),
-
-      // الصناديق الحوارية
       dialogTheme: DialogThemeData(
         backgroundColor: surfaceColor,
         surfaceTintColor: Colors.transparent,
@@ -168,8 +153,6 @@ class AppTheme {
           borderRadius: BorderRadius.circular(24),
         ),
       ),
-
-      // الأوراق السفلية
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: surfaceColor,
         surfaceTintColor: Colors.transparent,
@@ -177,8 +160,6 @@ class AppTheme {
           borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
         ),
       ),
-
-      // القوائم المنبثقة
       popupMenuTheme: PopupMenuThemeData(
         color: surfaceColor,
         textStyle: GoogleFonts.tajawal(
@@ -186,20 +167,14 @@ class AppTheme {
           color: textPrimary,
         ),
       ),
-
-      // المفتاح التبديل
       switchTheme: SwitchThemeData(
         activeColor: primary,
         activeTrackColor: primary.withOpacity(0.5),
       ),
-
-      // شريط التمرير
       sliderTheme: SliderThemeData(
         activeColor: primary,
         inactiveColor: textSecondary.withOpacity(0.2),
       ),
-
-      // مؤشر التحميل
       progressIndicatorTheme: ProgressIndicatorThemeData(
         color: primary,
         linearTrackColor: textSecondary.withOpacity(0.2),
