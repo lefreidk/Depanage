@@ -21,6 +21,9 @@ import 'screens/workshops_screen.dart';
 import 'screens/driver_onboarding_screen.dart';
 import 'screens/completion_rating_screen.dart';
 
+// الترجمة
+import 'localizations/app_localizations.dart';
+
 // الخدمات والإعدادات
 import 'services/storage_service.dart';
 import 'theme.dart';
@@ -55,6 +58,10 @@ class DepannageApp extends StatelessWidget {
               Locale('ar'),
               Locale('fr'),
               Locale('en'),
+            ],
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              // يمكن إضافة المزيد من المفوّضات هنا إذا لزم
             ],
             initialRoute: '/',
             routes: {
