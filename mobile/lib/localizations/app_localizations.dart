@@ -115,6 +115,12 @@ class AppLocalizations {
       'no_incoming_requests': 'لا توجد طلبات قادمة حالياً',
       'send_offer': 'إرسال عرض سعر',
       'send': 'إرسال',
+      'request_sent': 'تم إرسال طلبك بنجاح',
+      'go_to_dashboard': 'الانتقال إلى لوحة السائق',
+      'personal_info': 'المعلومات الشخصية والمركبة',
+      'vehicle_types': 'فئات السطحات المتاحة للقطر',
+      'terms_text': 'بموجب هذا الطلب، تقر بأن جميع البيانات صحيحة وتوافق على نظام الرصيد المسبق للعمولة. سيتم قبول الطلبات بناءً على توفر رصيد كافٍ في محفظتك لتغطية نسبة التطبيق عن الرحلات النقدية.',
+      'submitting': 'جاري الإرسال...',
     },
     'fr': {
       'app_name': 'Dépannage',
@@ -219,6 +225,12 @@ class AppLocalizations {
       'no_incoming_requests': 'Aucune demande entrante actuellement',
       'send_offer': 'Envoyer une offre',
       'send': 'Envoyer',
+      'request_sent': 'Votre demande a été envoyée avec succès',
+      'go_to_dashboard': 'Accéder au tableau de bord du chauffeur',
+      'personal_info': 'Informations personnelles et véhicule',
+      'vehicle_types': 'Catégories de véhicules disponibles pour le remorquage',
+      'terms_text': 'Par la présente demande, vous certifiez que toutes les données sont exactes et acceptez le système de commission prépayée. Les demandes seront acceptées si le solde de votre portefeuille est suffisant pour couvrir le pourcentage de la plateforme sur les courses en espèces.',
+      'submitting': 'Envoi en cours...',
     },
     'en': {
       'app_name': 'Depannage',
@@ -323,6 +335,12 @@ class AppLocalizations {
       'no_incoming_requests': 'No incoming requests currently',
       'send_offer': 'Send offer',
       'send': 'Send',
+      'request_sent': 'Your request has been sent successfully',
+      'go_to_dashboard': 'Go to driver dashboard',
+      'personal_info': 'Personal information and vehicle',
+      'vehicle_types': 'Available vehicle categories for towing',
+      'terms_text': 'By submitting this request, you confirm that all data is correct and agree to the prepaid commission system. Requests will be accepted based on sufficient wallet balance to cover the platform percentage for cash trips.',
+      'submitting': 'Submitting...',
     },
   };
 
