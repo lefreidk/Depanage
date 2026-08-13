@@ -83,7 +83,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
   const otp = generateOtp();
 
   try {
-    // حفظ الرمز في Upstash Redis لمدة 5 دقائق (300 ثانية)
+    // حفظ الرمز في Upstash Redis لمدة 5 دقائق
     await redis.set(`otp:${cleanPhone}`, otp, { ex: 300 });
     console.log('💾 حفظ OTP لـ', cleanPhone, 'الرمز:', otp);
 
@@ -107,10 +107,12 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   const cleanOtp = otp.trim();
 
   try {
-    const stored = await redis.get(`otp:${cleanPhone}`);
+    const storedRaw = await redis.get(`otp:${cleanPhone}`);
+    const stored = String(storedRaw ?? '').trim();
+
     console.log('🔍 التحقق من OTP لـ', cleanPhone, 'المدخل:', cleanOtp, 'المخزن:', stored);
 
-    if (stored && stored === cleanOtp) {
+    if (stored === cleanOtp) {
       await redis.del(`otp:${cleanPhone}`);
       res.json({ success: true, userId: cleanPhone, phone: cleanPhone });
     } else {
