@@ -8,12 +8,12 @@ import '../theme.dart';
 import '../config.dart';
 import '../localizations/app_localizations.dart';
 import 'profile_screen.dart';
-import 'driver_onboarding_screen.dart';
+import 'driver_dashboard_screen.dart';
+import 'admin_login_screen.dart'; // جديد
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
 
-  // فتح واتساب الدعم الفني
   Future<void> _openWhatsApp(BuildContext context) async {
     final url = 'https://wa.me/${AppConfig.supportWhatsAppNumber}';
     final uri = Uri.parse(url);
@@ -26,7 +26,6 @@ class SettingsScreen extends StatelessWidget {
     }
   }
 
-  // تسجيل الخروج
   Future<void> _logout(BuildContext context, AppLocalizations lang) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -69,7 +68,6 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: EdgeInsets.all(16),
         children: [
-          // ========== قسم الحساب ==========
           Text(
             lang.translate('account') ?? 'الحساب',
             style: TextStyle(
@@ -96,7 +94,6 @@ class SettingsScreen extends StatelessWidget {
           ),
           SizedBox(height: 24),
 
-          // ========== قسم التفضيلات ==========
           Text(
             lang.translate('preferences') ?? 'التفضيلات',
             style: TextStyle(
@@ -110,7 +107,6 @@ class SettingsScreen extends StatelessWidget {
             color: isDark ? AppTheme.darkSurface : Colors.white,
             child: Column(
               children: [
-                // اختيار اللغة
                 ListTile(
                   leading: Icon(Icons.language, color: AppTheme.primary),
                   title: Text(lang.translate('language') ?? 'اللغة'),
@@ -130,7 +126,6 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
                 Divider(height: 1),
-                // الوضع الداكن
                 SwitchListTile(
                   secondary: Icon(
                     isDark ? Icons.dark_mode : Icons.light_mode,
@@ -144,7 +139,6 @@ class SettingsScreen extends StatelessWidget {
                   },
                 ),
                 Divider(height: 1),
-                // وضع شريك العمل
                 SwitchListTile(
                   secondary: Icon(Icons.local_shipping, color: AppTheme.primary),
                   title: Text(lang.translate('driver_mode') ?? 'وضع شريك العمل'),
@@ -153,13 +147,11 @@ class SettingsScreen extends StatelessWidget {
                   activeColor: AppTheme.primary,
                   onChanged: (value) async {
                     await context.read<AppProvider>().toggleDriverMode(value);
-                    if (value) {
-                      if (context.mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => DriverOnboardingScreen()),
-                        );
-                      }
+                    if (value && context.mounted) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => DriverDashboardScreen()),
+                      );
                     }
                   },
                 ),
@@ -168,7 +160,6 @@ class SettingsScreen extends StatelessWidget {
           ),
           SizedBox(height: 24),
 
-          // ========== قسم الدعم ==========
           Text(
             lang.translate('support') ?? 'الدعم',
             style: TextStyle(
@@ -193,12 +184,23 @@ class SettingsScreen extends StatelessWidget {
                   title: Text(lang.translate('contact_whatsapp') ?? 'اتصل بنا عبر واتساب'),
                   onTap: () => _openWhatsApp(context),
                 ),
+                Divider(height: 1),
+                // زر دخول الإدارة (جديد)
+                ListTile(
+                  leading: Icon(Icons.admin_panel_settings, color: AppTheme.primary),
+                  title: Text('دخول الإدارة'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => AdminLoginScreen()),
+                    );
+                  },
+                ),
               ],
             ),
           ),
           SizedBox(height: 32),
 
-          // ========== زر تسجيل الخروج ==========
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
