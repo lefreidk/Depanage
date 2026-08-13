@@ -4,12 +4,12 @@ import '../models/user.dart';
 class StorageService {
   static late SharedPreferences _prefs;
 
-  // تهيئة التخزين المحلي (يُستدعى مرة واحدة عند بدء التطبيق)
+  // تهيئة التخزين المحلي
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
   }
 
-  // حفظ المستخدم بعد تسجيل الدخول
+  // حفظ بيانات المستخدم
   static Future<void> saveUser(User user) async {
     await _prefs.setString('user_id', user.id);
     await _prefs.setString('user_phone', user.phone);
@@ -32,15 +32,25 @@ class StorageService {
     );
   }
 
-  // التحقق من تسجيل الدخول
-  static bool get isLoggedIn => _prefs.getBool('is_logged_in') ?? false;
-
-  // تعيين حالة تسجيل الدخول
+  // حفظ حالة تسجيل الدخول
   static Future<void> setLoggedIn(bool value) async {
     await _prefs.setBool('is_logged_in', value);
   }
 
-  // مسح جميع البيانات (تسجيل الخروج)
+  // التحقق من تسجيل الدخول
+  static bool get isLoggedIn => _prefs.getBool('is_logged_in') ?? false;
+
+  // حفظ مسار صورة الملف الشخصي
+  static Future<void> saveAvatarPath(String path) async {
+    await _prefs.setString('avatar_path', path);
+  }
+
+  // جلب مسار صورة الملف الشخصي
+  static String? getAvatarPath() {
+    return _prefs.getString('avatar_path');
+  }
+
+  // مسح جميع البيانات
   static Future<void> clear() async {
     await _prefs.clear();
   }
