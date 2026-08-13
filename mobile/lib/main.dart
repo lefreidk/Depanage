@@ -22,6 +22,8 @@ import 'screens/workshops_screen.dart';
 import 'screens/driver_onboarding_screen.dart';
 import 'screens/completion_rating_screen.dart';
 import 'screens/driver_dashboard_screen.dart';
+import 'screens/admin_login_screen.dart'; // جديد
+import 'screens/admin_dashboard_screen.dart'; // جديد
 
 // الترجمة
 import 'localizations/app_localizations.dart';
@@ -82,6 +84,8 @@ class DepannageApp extends StatelessWidget {
               '/driver_onboarding': (context) => DriverOnboardingScreen(),
               '/completion_rating': (context) => CompletionRatingScreen(),
               '/driver_dashboard': (context) => DriverDashboardScreen(),
+              '/admin_login': (context) => AdminLoginScreen(), // جديد
+              '/admin_dashboard': (context) => AdminDashboardScreen(), // جديد
             },
           );
         },
