@@ -106,6 +106,11 @@ class AppLocalizations {
       'no_vehicles': 'لا توجد مركبات محفوظة',
       'my_vehicles': 'مركباتي',
       'add_vehicle': 'إضافة مركبة',
+      'no_active_request': 'لا يوجد طلب نشط',
+      'driver_phone_unavailable': 'رقم السائق غير متوفر حالياً',
+      'call_failed': 'تعذر فتح الهاتف',
+      'offer_notification': 'سيصلك إشعار فور وصول أول عرض',
+      'minutes': 'دقائق',
     },
     'fr': {
       'app_name': 'Dépannage',
@@ -201,6 +206,11 @@ class AppLocalizations {
       'no_vehicles': 'Aucun véhicule enregistré',
       'my_vehicles': 'Mes véhicules',
       'add_vehicle': 'Ajouter un véhicule',
+      'no_active_request': 'Aucune demande active',
+      'driver_phone_unavailable': 'Numéro du chauffeur indisponible actuellement',
+      'call_failed': 'Impossible d\'ouvrir le téléphone',
+      'offer_notification': 'Vous serez notifié dès la première offre',
+      'minutes': 'minutes',
     },
     'en': {
       'app_name': 'Depannage',
@@ -296,6 +306,11 @@ class AppLocalizations {
       'no_vehicles': 'No saved vehicles',
       'my_vehicles': 'My vehicles',
       'add_vehicle': 'Add vehicle',
+      'no_active_request': 'No active request',
+      'driver_phone_unavailable': 'Driver phone currently unavailable',
+      'call_failed': 'Unable to open phone',
+      'offer_notification': 'You will be notified as soon as the first offer arrives',
+      'minutes': 'minutes',
     },
   };
 
