@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../providers/location_provider.dart';
@@ -15,11 +17,13 @@ import 'request_screen.dart';
 class RequestDetailScreen extends StatefulWidget {
   final String vehicleCategory;
   final LatLng pickupLocation;
+  final String initialDropoffText;
 
   const RequestDetailScreen({
     Key? key,
     required this.vehicleCategory,
     required this.pickupLocation,
+    this.initialDropoffText = '',
   }) : super(key: key);
 
   @override
@@ -33,9 +37,19 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   double _selectedPrice = 0;
   bool _isPublishing = false;
 
+  final TextEditingController _dropoffTextController = TextEditingController();
+  bool _isSearching = false;
+
   @override
   void initState() {
     super.initState();
+    _dropoffTextController.text = widget.initialDropoffText;
+  }
+
+  @override
+  void dispose() {
+    _dropoffTextController.dispose();
+    super.dispose();
   }
 
   double _calculateDistance(LatLng start, LatLng end) {
@@ -48,13 +62,63 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     return (distanceKm * pricePerKm).roundToDouble();
   }
 
-  // تعديل التوقيع ليقبل TapPosition و LatLng
+  // البحث عن العنوان باستخدام Nominatim
+  Future<void> _searchAddress() async {
+    final query = _dropoffTextController.text.trim();
+    if (query.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('الرجاء إدخال عنوان الوجهة')),
+      );
+      return;
+    }
+
+    setState(() => _isSearching = true);
+
+    try {
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=$query',
+      );
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final results = jsonDecode(response.body) as List;
+        if (results.isNotEmpty) {
+          final lat = double.parse(results[0]['lat']);
+          final lng = double.parse(results[0]['lon']);
+          final point = LatLng(lat, lng);
+
+          setState(() {
+            _dropoffLocation = point;
+            _distanceKm = _calculateDistance(widget.pickupLocation, point);
+            _suggestedPrice = _calculateSuggestedPrice(_distanceKm);
+            _selectedPrice = _suggestedPrice;
+            _isSearching = false;
+          });
+        } else {
+          setState(() => _isSearching = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('لم يتم العثور على العنوان')),
+          );
+        }
+      } else {
+        setState(() => _isSearching = false);
+        throw Exception('فشل البحث');
+      }
+    } catch (e) {
+      setState(() => _isSearching = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذر البحث عن العنوان، يمكنك النقر على الخريطة')),
+      );
+    }
+  }
+
+  // عند الضغط على الخريطة لتحديد الوجهة
   void _handleMapTap(TapPosition position, LatLng point) {
     setState(() {
       _dropoffLocation = point;
       _distanceKm = _calculateDistance(widget.pickupLocation, point);
       _suggestedPrice = _calculateSuggestedPrice(_distanceKm);
       _selectedPrice = _suggestedPrice;
+      _dropoffTextController.text = '${point.latitude.toStringAsFixed(5)}, ${point.longitude.toStringAsFixed(5)}';
     });
   }
 
@@ -67,7 +131,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   Future<void> _publishRequest() async {
     if (_dropoffLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('الرجاء تحديد الوجهة بالضغط على الخريطة')),
+        SnackBar(content: Text('الرجاء تحديد الوجهة بالبحث أو بالنقر على الخريطة')),
       );
       return;
     }
@@ -119,7 +183,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
             options: MapOptions(
               center: widget.pickupLocation,
               zoom: 13,
-              onTap: _handleMapTap, // الآن التوقيع صحيح
+              onTap: _handleMapTap,
             ),
             children: [
               TileLayer(
@@ -156,6 +220,49 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                 ],
               ),
             ],
+          ),
+
+          // حقل البحث عن العنوان
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 16,
+            right: 16,
+            child: Card(
+              color: isDark ? AppTheme.darkSurface : Colors.white,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _dropoffTextController,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: isDark ? Colors.white : AppTheme.textPrimary,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'ابحث عن عنوان الوجهة...',
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                        ),
+                        onSubmitted: (_) => _searchAddress(),
+                      ),
+                    ),
+                    IconButton(
+                      icon: _isSearching
+                          ? SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(color: AppTheme.primary),
+                            )
+                          : Icon(Icons.search, color: AppTheme.primary),
+                      onPressed: _isSearching ? null : _searchAddress,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
 
           // البطاقة السفلية للتفاصيل
@@ -203,7 +310,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                       Text(
                         _dropoffLocation == null
                             ? lang.translate('tap_to_set_destination') ??
-                                'اضغط على الخريطة لتحديد الوجهة'
+                                'ابحث أو اضغط على الخريطة لتحديد الوجهة'
                             : '${lang.translate('distance') ?? 'المسافة'}: ${_distanceKm.toStringAsFixed(1)} كم',
                         style: TextStyle(
                           fontSize: 16,
