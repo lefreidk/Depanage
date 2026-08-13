@@ -83,7 +83,8 @@ app.post('/api/auth/send-otp', async (req, res) => {
   const otp = generateOtp();
 
   try {
-    await redis.set(`otp:${cleanPhone}`, otp, { ex: 300 });
+    // حفظ الرمز في Upstash Redis بدون انتهاء مؤقت (أو بمدة 10 دقائق)
+    await redis.set(`otp:${cleanPhone}`, otp, { ex: 600 });
     console.log('💾 حفظ OTP لـ', cleanPhone, 'الرمز:', otp);
 
     const sent = await sendWhatsAppOtp(phone, otp);
@@ -107,12 +108,13 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 
   try {
     const storedRaw = await redis.get(`otp:${cleanPhone}`);
-    const stored = String(storedRaw ?? '').trim();
+    const stored = storedRaw ? String(storedRaw).trim() : '';
 
     console.log('🔍 التحقق من OTP لـ', cleanPhone, 'المدخل:', cleanOtp, 'المخزن:', stored);
 
     if (stored === cleanOtp) {
       await redis.del(`otp:${cleanPhone}`);
+
       // البحث عن المستخدم أو إنشائه
       let { data: user } = await supabase
         .from('users')
@@ -151,7 +153,7 @@ app.post('/api/auth/admin-login', async (req, res) => {
 });
 
 // =====================================================
-// 2. طلبات الجر (Client Requests)
+// 2. طلبات الجر
 // =====================================================
 
 app.post('/api/requests/create', async (req, res) => {
@@ -201,7 +203,7 @@ app.get('/api/requests/history', async (req, res) => {
 });
 
 // =====================================================
-// 3. ورشات التصليح (Workshops)
+// 3. ورشات التصليح
 // =====================================================
 
 app.get('/api/workshops', async (req, res) => {
@@ -216,7 +218,7 @@ app.get('/api/workshops', async (req, res) => {
 });
 
 // =====================================================
-// 4. طلب الشراكة للسائقين (Driver Onboarding) مع رفع الوثائق
+// 4. طلب الشراكة للسائقين
 // =====================================================
 
 async function uploadDocument(driverId, type, base64String) {
@@ -307,10 +309,9 @@ app.post('/api/drivers/apply', async (req, res) => {
 });
 
 // =====================================================
-// 5. لوحة الإدارة (Admin)
+// 5. لوحة الإدارة
 // =====================================================
 
-// إحصائيات عامة
 app.get('/api/admin/stats', async (req, res) => {
   try {
     const { data: activeTrips, error: activeError } = await supabase
@@ -353,7 +354,6 @@ app.get('/api/admin/stats', async (req, res) => {
   }
 });
 
-// طلبات الشراكة المعلقة
 app.get('/api/admin/drivers/pending', async (req, res) => {
   const { data: drivers, error } = await supabase
     .from('drivers')
@@ -365,7 +365,6 @@ app.get('/api/admin/drivers/pending', async (req, res) => {
   res.json(drivers);
 });
 
-// السائقون المعتمدون
 app.get('/api/admin/drivers/approved', async (req, res) => {
   const { data: drivers, error } = await supabase
     .from('drivers')
@@ -374,7 +373,6 @@ app.get('/api/admin/drivers/approved', async (req, res) => {
 
   if (error) return res.status(500).json({ error: 'فشل جلب السائقين' });
 
-  // جلب أرصدة المحافظ
   const { data: wallets, error: walletError } = await supabase
     .from('wallets')
     .select('user_id, balance');
@@ -391,7 +389,6 @@ app.get('/api/admin/drivers/approved', async (req, res) => {
   res.json(result);
 });
 
-// قبول أو رفض سائق
 app.post('/api/admin/drivers/decision', async (req, res) => {
   const { driverId, decision, reason } = req.body;
   const newStatus = decision === 'approve' ? 'approved' : 'rejected';
@@ -406,7 +403,6 @@ app.post('/api/admin/drivers/decision', async (req, res) => {
   res.json({ success: true });
 });
 
-// شحن رصيد سائق (بواسطة رقم الهاتف)
 app.post('/api/admin/wallets/charge', async (req, res) => {
   const { phone, amount } = req.body;
   if (!phone || !amount) return res.status(400).json({ error: 'بيانات ناقصة' });
@@ -445,7 +441,6 @@ app.post('/api/admin/wallets/charge', async (req, res) => {
   res.json({ success: true, newBalance });
 });
 
-// قائمة العملاء
 app.get('/api/admin/clients', async (req, res) => {
   const { data: clients, error } = await supabase
     .from('users')
@@ -458,7 +453,6 @@ app.get('/api/admin/clients', async (req, res) => {
   res.json(clients);
 });
 
-// حظر/فك حظر عميل
 app.post('/api/admin/clients/block', async (req, res) => {
   const { userId, block } = req.body;
   if (!userId) return res.status(400).json({ error: 'معرف المستخدم مطلوب' });
@@ -473,7 +467,6 @@ app.post('/api/admin/clients/block', async (req, res) => {
   res.json({ success: true });
 });
 
-// تحديث الإعدادات
 app.post('/api/admin/settings/update', async (req, res) => {
   const {
     commission_rate,
