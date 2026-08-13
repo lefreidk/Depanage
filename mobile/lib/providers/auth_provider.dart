@@ -13,14 +13,18 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // التحقق من حالة تسجيل الدخول عند بدء التطبيق
+  // التحقق من حالة تسجيل الدخول عند فتح التطبيق
   Future<void> checkLoginStatus() async {
     _isLoading = true;
     notifyListeners();
 
-    final savedUser = StorageService.getUser();
-    if (savedUser != null) {
-      _user = savedUser;
+    try {
+      final savedUser = StorageService.getUser();
+      if (savedUser != null) {
+        _user = savedUser;
+      }
+    } catch (e) {
+      _error = 'فشل جلب بيانات المستخدم';
     }
 
     _isLoading = false;
@@ -46,7 +50,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // تحديث الملف الشخصي
+  // تحديث الملف الشخصي (الاسم والبريد)
   Future<void> updateProfile({
     required String name,
     required String email,
