@@ -16,7 +16,7 @@ class User {
   // تحويل من JSON إلى كائن User
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'] ?? '',
+      id: json['id']?.toString() ?? '',
       phone: json['phone'] ?? '',
       name: json['name'] ?? '',
       email: json['email'],
@@ -33,5 +33,22 @@ class User {
       'email': email,
       'avatarUrl': avatarUrl,
     };
+  }
+
+  // نسخة معدلة من المستخدم (للتحديث السريع)
+  User copyWith({
+    String? id,
+    String? phone,
+    String? name,
+    String? email,
+    String? avatarUrl,
+  }) {
+    return User(
+      id: id ?? this.id,
+      phone: phone ?? this.phone,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+    );
   }
 }
