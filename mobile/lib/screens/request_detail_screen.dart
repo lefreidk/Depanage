@@ -48,7 +48,8 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     return (distanceKm * pricePerKm).roundToDouble();
   }
 
-  void _handleMapTap(LatLng point) {
+  // تعديل التوقيع ليقبل TapPosition و LatLng
+  void _handleMapTap(TapPosition position, LatLng point) {
     setState(() {
       _dropoffLocation = point;
       _distanceKm = _calculateDistance(widget.pickupLocation, point);
@@ -118,7 +119,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
             options: MapOptions(
               center: widget.pickupLocation,
               zoom: 13,
-              onTap: _handleMapTap,
+              onTap: _handleMapTap, // الآن التوقيع صحيح
             ),
             children: [
               TileLayer(
@@ -178,7 +179,6 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // عنوان الفئة
                   Row(
                     children: [
                       Icon(Icons.directions_car, color: AppTheme.primary),
@@ -196,7 +196,6 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                   ),
                   SizedBox(height: 12),
 
-                  // عرض المسافة
                   Row(
                     children: [
                       Icon(Icons.route, color: AppTheme.primary, size: 20),
@@ -215,7 +214,6 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                   ),
                   SizedBox(height: 12),
 
-                  // السعر المقترح وأزرار التعديل
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -252,7 +250,6 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                   ),
                   SizedBox(height: 16),
 
-                  // زر النشر
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
