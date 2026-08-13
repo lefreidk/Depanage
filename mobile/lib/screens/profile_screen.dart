@@ -8,6 +8,7 @@ import 'dart:io';
 import '../providers/auth_provider.dart';
 import '../theme.dart';
 import '../config.dart';
+import '../localizations/app_localizations.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -21,7 +22,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _avatarPath;
   List<Vehicle> _vehicles = [];
 
-  // حقول نموذج المركبة
   String _vehicleCategory = 'car';
   final _modelController = TextEditingController();
   final _plateController = TextEditingController();
@@ -33,7 +33,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadProfile();
   }
 
-  // تحميل البيانات المحفوظة
   Future<void> _loadProfile() async {
     final prefs = await SharedPreferences.getInstance();
     final user = context.read<AuthProvider>().user;
@@ -45,7 +44,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  // حفظ الاسم
   Future<void> _saveName() async {
     final auth = context.read<AuthProvider>();
     await auth.updateProfile(
@@ -58,7 +56,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // تغيير الصورة الشخصية
   Future<void> _changeAvatar() async {
     final picker = ImagePicker();
     final XFile? image = await picker.pickImage(
@@ -78,7 +75,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // فتح نافذة إضافة مركبة
   void _showAddVehicleSheet() {
     _modelController.clear();
     _plateController.clear();
@@ -93,6 +89,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       builder: (context) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
+        final lang = AppLocalizations.of(context);
+
         return StatefulBuilder(
           builder: (context, setState) {
             return Padding(
@@ -109,7 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'إضافة مركبة',
+                      lang.translate('add_vehicle') ?? 'إضافة مركبة',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -117,10 +115,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     SizedBox(height: 16),
-                    // اختيار الفئة
                     DropdownButtonFormField<String>(
                       initialValue: _vehicleCategory,
-                      decoration: InputDecoration(labelText: 'الفئة'),
+                      decoration: InputDecoration(labelText: lang.translate('category') ?? 'الفئة'),
                       items: AppConfig.vehicleCategories.entries.map((entry) {
                         return DropdownMenuItem(
                           value: entry.key,
@@ -136,26 +133,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     SizedBox(height: 12),
                     TextFormField(
                       controller: _modelController,
-                      decoration: InputDecoration(labelText: 'الموديل'),
+                      decoration: InputDecoration(labelText: lang.translate('model') ?? 'الموديل'),
                       validator: (v) => v!.trim().isEmpty ? 'مطلوب' : null,
                     ),
                     SizedBox(height: 12),
                     TextFormField(
                       controller: _plateController,
-                      decoration: InputDecoration(labelText: 'رقم اللوحة'),
+                      decoration: InputDecoration(labelText: lang.translate('plate_number') ?? 'رقم اللوحة'),
                       validator: (v) => v!.trim().isEmpty ? 'مطلوب' : null,
                     ),
                     SizedBox(height: 12),
                     TextFormField(
                       controller: _colorController,
-                      decoration: InputDecoration(labelText: 'اللون'),
+                      decoration: InputDecoration(labelText: lang.translate('color') ?? 'اللون'),
                     ),
                     SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () => _saveVehicle(context),
-                        child: Text('حفظ المركبة'),
+                        child: Text(lang.translate('save') ?? 'حفظ المركبة'),
                       ),
                     ),
                   ],
@@ -168,7 +165,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // حفظ مركبة جديدة
   Future<void> _saveVehicle(BuildContext sheetContext) async {
     if (!_vehicleFormKey.currentState!.validate()) return;
 
@@ -190,7 +186,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // حذف مركبة
   Future<void> _deleteVehicle(int index) async {
     final prefs = await SharedPreferences.getInstance();
     _vehicles.removeAt(index);
@@ -202,9 +197,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lang = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text('الملف الشخصي')),
+      appBar: AppBar(title: Text(lang.translate('profile') ?? 'الملف الشخصي')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -253,9 +249,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // الاسم
                     Text(
-                      'الاسم الكامل',
+                      lang.translate('full_name') ?? 'الاسم الكامل',
                       style: TextStyle(
                         fontSize: 14,
                         color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -265,7 +260,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     TextFormField(
                       controller: _nameController,
                       decoration: InputDecoration(
-                        hintText: 'أدخل اسمك',
+                        hintText: lang.translate('enter_name') ?? 'أدخل اسمك',
                         suffixIcon: IconButton(
                           icon: Icon(Icons.save, color: AppTheme.primary),
                           onPressed: _saveName,
@@ -273,9 +268,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     SizedBox(height: 16),
-                    // رقم الهاتف
                     Text(
-                      'رقم الهاتف',
+                      lang.translate('phone') ?? 'رقم الهاتف',
                       style: TextStyle(
                         fontSize: 14,
                         color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -287,7 +281,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       readOnly: true,
                       decoration: InputDecoration(
                         suffixIcon: Icon(Icons.lock, color: AppTheme.primary),
-                        hintText: 'رقم الهاتف',
+                        hintText: lang.translate('phone') ?? 'رقم الهاتف',
                       ),
                     ),
                   ],
@@ -301,7 +295,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'مركباتي',
+                  lang.translate('my_vehicles') ?? 'مركباتي',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -317,7 +311,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             SizedBox(height: 8),
 
-            // قائمة المركبات
             if (_vehicles.isEmpty)
               Container(
                 width: double.infinity,
@@ -331,7 +324,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Icon(Icons.directions_car, size: 40, color: Colors.grey),
                     SizedBox(height: 8),
                     Text(
-                      'لا توجد مركبات محفوظة',
+                      lang.translate('no_vehicles') ?? 'لا توجد مركبات محفوظة',
                       style: TextStyle(
                         color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
                       ),
@@ -358,8 +351,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     subtitle: Text(
-                      'لوحة: ${vehicle.plate}' +
-                          (vehicle.color.isNotEmpty ? ' | لون: ${vehicle.color}' : ''),
+                      '${lang.translate('plate_number') ?? 'لوحة'}: ${vehicle.plate}' +
+                          (vehicle.color.isNotEmpty ? ' | ${lang.translate('color') ?? 'لون'}: ${vehicle.color}' : ''),
                       style: TextStyle(
                         fontSize: 13,
                         color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -396,7 +389,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// نموذج مركبة بسيط للتخزين المحلي
 class Vehicle {
   final String category;
   final String model;
@@ -425,13 +417,11 @@ class Vehicle {
       );
 }
 
-// حفظ قائمة المركبات في SharedPreferences
 Future<void> saveVehicles(SharedPreferences prefs, List<Vehicle> vehicles) async {
   final list = vehicles.map((v) => v.toJson()).toList();
   await prefs.setString('vehicles', jsonEncode(list));
 }
 
-// تحميل قائمة المركبات من SharedPreferences
 List<Vehicle> loadVehicles(SharedPreferences prefs) {
   final raw = prefs.getString('vehicles');
   if (raw == null) return [];
