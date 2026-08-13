@@ -83,7 +83,6 @@ app.post('/api/auth/send-otp', async (req, res) => {
   const otp = generateOtp();
 
   try {
-    // حفظ الرمز في Upstash Redis لمدة 5 دقائق
     await redis.set(`otp:${cleanPhone}`, otp, { ex: 300 });
     console.log('💾 حفظ OTP لـ', cleanPhone, 'الرمز:', otp);
 
@@ -114,7 +113,24 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 
     if (stored === cleanOtp) {
       await redis.del(`otp:${cleanPhone}`);
-      res.json({ success: true, userId: cleanPhone, phone: cleanPhone });
+      // البحث عن المستخدم أو إنشائه
+      let { data: user } = await supabase
+        .from('users')
+        .select('*')
+        .eq('phone', cleanPhone)
+        .single();
+
+      if (!user) {
+        const { data: newUser, error } = await supabase
+          .from('users')
+          .insert([{ phone: cleanPhone, role: 'client' }])
+          .select()
+          .single();
+        if (error) throw error;
+        user = newUser;
+      }
+
+      res.json({ success: true, userId: user.id, phone: cleanPhone, role: user.role });
     } else {
       res.status(400).json({ error: 'رمز التحقق غير صحيح' });
     }
@@ -294,6 +310,50 @@ app.post('/api/drivers/apply', async (req, res) => {
 // 5. لوحة الإدارة (Admin)
 // =====================================================
 
+// إحصائيات عامة
+app.get('/api/admin/stats', async (req, res) => {
+  try {
+    const { data: activeTrips, error: activeError } = await supabase
+      .from('trips')
+      .select('id', { count: 'exact' })
+      .eq('status', 'in_progress');
+    if (activeError) throw activeError;
+
+    const { data: completedTrips, error: completedError } = await supabase
+      .from('trips')
+      .select('id', { count: 'exact' })
+      .eq('status', 'completed');
+    if (completedError) throw completedError;
+
+    const { data: drivers, error: driversError } = await supabase
+      .from('drivers')
+      .select('id, status');
+    if (driversError) throw driversError;
+
+    const onlineDrivers = drivers.filter(d => d.status === 'approved').length;
+
+    const { data: transactions, error: revenueError } = await supabase
+      .from('transactions')
+      .select('amount, type');
+    if (revenueError) throw revenueError;
+
+    const pendingRevenue = transactions
+      .filter(t => t.type === 'debit')
+      .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+
+    res.json({
+      active_trips: activeTrips.length,
+      completed_trips: completedTrips.length,
+      online_drivers: onlineDrivers,
+      pending_revenue: pendingRevenue,
+    });
+  } catch (e) {
+    console.error('❌ خطأ في الإحصائيات:', e);
+    res.status(500).json({ error: 'فشل جلب الإحصائيات' });
+  }
+});
+
+// طلبات الشراكة المعلقة
 app.get('/api/admin/drivers/pending', async (req, res) => {
   const { data: drivers, error } = await supabase
     .from('drivers')
@@ -305,6 +365,33 @@ app.get('/api/admin/drivers/pending', async (req, res) => {
   res.json(drivers);
 });
 
+// السائقون المعتمدون
+app.get('/api/admin/drivers/approved', async (req, res) => {
+  const { data: drivers, error } = await supabase
+    .from('drivers')
+    .select('*, users(phone, name)')
+    .eq('status', 'approved');
+
+  if (error) return res.status(500).json({ error: 'فشل جلب السائقين' });
+
+  // جلب أرصدة المحافظ
+  const { data: wallets, error: walletError } = await supabase
+    .from('wallets')
+    .select('user_id, balance');
+  if (walletError) return res.status(500).json({ error: 'فشل جلب المحافظ' });
+
+  const walletMap = {};
+  wallets.forEach(w => { walletMap[w.user_id] = w.balance; });
+
+  const result = drivers.map(d => ({
+    ...d,
+    wallet_balance: walletMap[d.user_id] || 0,
+  }));
+
+  res.json(result);
+});
+
+// قبول أو رفض سائق
 app.post('/api/admin/drivers/decision', async (req, res) => {
   const { driverId, decision, reason } = req.body;
   const newStatus = decision === 'approve' ? 'approved' : 'rejected';
@@ -319,14 +406,17 @@ app.post('/api/admin/drivers/decision', async (req, res) => {
   res.json({ success: true });
 });
 
+// شحن رصيد سائق (بواسطة رقم الهاتف)
 app.post('/api/admin/wallets/charge', async (req, res) => {
   const { phone, amount } = req.body;
   if (!phone || !amount) return res.status(400).json({ error: 'بيانات ناقصة' });
 
+  const cleanPhone = phone.replace(/[^0-9]/g, '');
+
   const { data: user } = await supabase
     .from('users')
     .select('id')
-    .eq('phone', phone)
+    .eq('phone', cleanPhone)
     .single();
 
   if (!user) return res.status(404).json({ error: 'السائق غير موجود' });
@@ -353,6 +443,67 @@ app.post('/api/admin/wallets/charge', async (req, res) => {
   }]);
 
   res.json({ success: true, newBalance });
+});
+
+// قائمة العملاء
+app.get('/api/admin/clients', async (req, res) => {
+  const { data: clients, error } = await supabase
+    .from('users')
+    .select('id, phone, name, blocked')
+    .eq('role', 'client')
+    .order('created_at', { ascending: false });
+
+  if (error) return res.status(500).json({ error: 'فشل جلب العملاء' });
+
+  res.json(clients);
+});
+
+// حظر/فك حظر عميل
+app.post('/api/admin/clients/block', async (req, res) => {
+  const { userId, block } = req.body;
+  if (!userId) return res.status(400).json({ error: 'معرف المستخدم مطلوب' });
+
+  const { error } = await supabase
+    .from('users')
+    .update({ blocked: block ? true : false })
+    .eq('id', userId);
+
+  if (error) return res.status(500).json({ error: 'فشل تحديث الحالة' });
+
+  res.json({ success: true });
+});
+
+// تحديث الإعدادات
+app.post('/api/admin/settings/update', async (req, res) => {
+  const {
+    commission_rate,
+    min_wallet_balance,
+    price_per_km_motorcycle,
+    price_per_km_car,
+    price_per_km_truck,
+  } = req.body;
+
+  try {
+    const settings = {
+      commission_rate: String(commission_rate ?? 15),
+      min_wallet_balance: String(min_wallet_balance ?? 500),
+      price_per_km_motorcycle: String(price_per_km_motorcycle ?? 300),
+      price_per_km_car: String(price_per_km_car ?? 500),
+      price_per_km_truck: String(price_per_km_truck ?? 900),
+    };
+
+    for (const [key, value] of Object.entries(settings)) {
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert({ key, value }, { onConflict: 'key' });
+      if (error) throw error;
+    }
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error('❌ خطأ في حفظ الإعدادات:', e);
+    res.status(500).json({ error: 'فشل حفظ الإعدادات' });
+  }
 });
 
 // =====================================================
