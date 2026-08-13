@@ -16,6 +16,49 @@ class RequestProvider extends ChangeNotifier {
   bool get isRequesting => _isRequesting;
   bool get isWaitingOffers => _isWaitingOffers;
 
+  RequestProvider() {
+    _setupSocketListeners();
+  }
+
+  // تهيئة مستمعي الأحداث القادمة من الخادم
+  void _setupSocketListeners() {
+    final socket = SocketService.socket;
+
+    // استقبال عرض سعر جديد من مزود
+    socket.on('new:offer', (data) {
+      final offer = Offer.fromJson({
+        'id': data['offerId'] ?? '',
+        'requestId': data['requestId'] ?? '',
+        'providerId': data['providerId'] ?? '',
+        'providerName': data['providerName'] ?? 'مزود خدمة',
+        'price': (data['price'] ?? 0).toDouble(),
+        'status': 'pending',
+        'createdAt': DateTime.now().toIso8601String(),
+        'distanceKm': (data['distance'] as num?)?.toDouble(),
+      });
+      receiveOffer(offer);
+    });
+
+    // تأكيد إنشاء الطلب
+    socket.on('request:created', (data) {
+      _isRequesting = false;
+      _isWaitingOffers = true;
+      notifyListeners();
+    });
+
+    // قبول العرض من قبل العميل (رد من الخادم)
+    socket.on('offer:accepted', (data) {
+      _currentRequest?.status = 'accepted';
+      _isWaitingOffers = false;
+      notifyListeners();
+    });
+
+    // تحديث موقع السائق (للتتبع) - يمكن استخدامه لاحقاً
+    socket.on('provider:location:update', (data) {
+      // لا نتعامل معه هنا مباشرة، لكن يمكن للمزود تتبع الشاشة
+    });
+  }
+
   // إنشاء طلب جديد وإرساله عبر Socket.IO
   Future<void> createRequest({
     required String driverId,
@@ -28,9 +71,10 @@ class RequestProvider extends ChangeNotifier {
   }) async {
     _isRequesting = true;
     _offers.clear();
+    _isWaitingOffers = false;
     notifyListeners();
 
-    // إنشاء كائن الطلب محليًا
+    // إنشاء كائن الطلب محلياً
     _currentRequest = TowRequest(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       vehicleType: vehicleType,
@@ -43,7 +87,7 @@ class RequestProvider extends ChangeNotifier {
       createdAt: DateTime.now(),
     );
 
-    // إرسال الطلب إلى الخادم عبر Socket.IO
+    // إرسال الطلب إلى الخادم
     SocketService.emitTowRequest(
       driverId: driverId,
       vehicleType: vehicleType,
@@ -54,31 +98,21 @@ class RequestProvider extends ChangeNotifier {
       price: price,
     );
 
-    _isRequesting = false;
-    _isWaitingOffers = true;
+    // لا ننتظر استجابة فورية؛ سيصل حدث 'request:created' من الخادم
+    // لكن في حال لم يصل، نبقى في حالة الانتظار
+    _isRequesting = true;
     notifyListeners();
   }
 
-  // استقبال عرض سعر من مزود خدمة
+  // استقبال عرض سعر من مزود
   void receiveOffer(Offer offer) {
     _offers.add(offer);
+    _isWaitingOffers = true;
     notifyListeners();
   }
 
   // قبول عرض سعر
   void acceptOffer(Offer offer) {
-    // تحديث حالة العرض
-    offer = Offer(
-      id: offer.id,
-      requestId: offer.requestId,
-      providerId: offer.providerId,
-      providerName: offer.providerName,
-      price: offer.price,
-      status: 'accepted',
-      createdAt: offer.createdAt,
-      distanceKm: offer.distanceKm,
-    );
-
     // إرسال قبول العرض إلى الخادم
     SocketService.emitAcceptOffer(
       offerId: offer.id,
@@ -86,22 +120,21 @@ class RequestProvider extends ChangeNotifier {
       providerId: offer.providerId,
     );
 
-    // تحديث حالة الطلب
+    // تحديث الحالة محلياً
     _currentRequest?.status = 'accepted';
     _isWaitingOffers = false;
-
-    // مسح العروض الأخرى
     _offers.clear();
     notifyListeners();
   }
 
-  // إكمال الطلب (يُستدعى بعد وصول الونش)
+  // إكمال الرحلة (تسمى من شاشة التتبع/التقييم)
   void completeRequest() {
     if (_currentRequest != null) {
       _currentRequest!.status = 'completed';
       _history.insert(0, _currentRequest!);
       _currentRequest = null;
       _offers.clear();
+      _isWaitingOffers = false;
       notifyListeners();
     }
   }
