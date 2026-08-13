@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 import '../theme.dart';
 import '../config.dart';
@@ -24,7 +23,6 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // إضافة رمز الجزائر إذا لم يكن موجودًا
     final fullPhone = phone.startsWith('+') ? phone : '+213$phone';
 
     setState(() => _isLoading = true);
@@ -51,103 +49,84 @@ class _LoginScreenState extends State<LoginScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [AppTheme.darkBackground, AppTheme.darkBackground]
-                : [AppTheme.primary.withOpacity(0.1), AppTheme.lightBackground],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.local_shipping,
-                    size: 100,
-                    color: isDark ? Colors.white : AppTheme.primary,
-                  ).animate().scale(duration: 600.ms),
-                  SizedBox(height: 24),
-                  Text(
-                    AppConfig.appName,
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                          color: isDark ? Colors.white : AppTheme.primary,
-                        ),
-                  ).animate().fadeIn(),
-                  SizedBox(height: 8),
-                  Text(
-                    'أدخل رقم جوالك للمتابعة',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: isDark
-                          ? AppTheme.darkTextSecondary
-                          : AppTheme.lightTextSecondary,
-                    ),
-                  ),
-                  SizedBox(height: 40),
-
-                  // حقل إدخال رقم الهاتف بشكل واضح
-                  Container(
-                    decoration: BoxDecoration(
-                      color: isDark ? AppTheme.darkSurface : Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
-                      ),
-                    ),
-                    child: TextField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: isDark ? Colors.white : AppTheme.textPrimary,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'مثال: 0550123456',
-                        hintStyle: TextStyle(
-                          color: isDark
-                              ? AppTheme.darkTextSecondary
-                              : AppTheme.lightTextSecondary,
-                        ),
-                        prefixIcon: Icon(Icons.phone, color: AppTheme.primary),
-                        prefixText: '+213 ',
-                        prefixStyle: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : AppTheme.textPrimary,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.all(18),
-                      ),
-                    ),
-                  ).animate().slideX(begin: -0.2, delay: 200.ms),
-                  SizedBox(height: 24),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _sendOtp,
-                      child: _isLoading
-                          ? SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(color: Colors.white),
-                            )
-                          : Text('إرسال رمز التحقق'),
-                    ),
-                  ).animate().slideY(begin: 0.3, delay: 400.ms),
-                ],
+      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Icon(
+                Icons.local_shipping,
+                size: 100,
+                color: isDark ? Colors.white : AppTheme.primary,
               ),
-            ),
+              SizedBox(height: 24),
+              Text(
+                AppConfig.appName,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : AppTheme.primary,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'أدخل رقم جوالك للمتابعة',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                ),
+              ),
+              SizedBox(height: 32),
+              TextField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                style: TextStyle(
+                  fontSize: 18,
+                  color: isDark ? Colors.white : AppTheme.textPrimary,
+                ),
+                decoration: InputDecoration(
+                  labelText: 'رقم الهاتف',
+                  hintText: 'مثال: 0550123456',
+                  prefixText: '+213 ',
+                  prefixStyle: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : AppTheme.textPrimary,
+                  ),
+                  filled: true,
+                  fillColor: isDark ? AppTheme.darkSurface : Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: AppTheme.primary, width: 2),
+                  ),
+                  contentPadding: EdgeInsets.all(18),
+                ),
+              ),
+              SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _sendOtp,
+                child: _isLoading
+                    ? SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(color: Colors.white),
+                      )
+                    : Text('إرسال رمز التحقق'),
+              ),
+            ],
           ),
         ),
       ),
