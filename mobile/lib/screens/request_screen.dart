@@ -14,12 +14,6 @@ class RequestScreen extends StatefulWidget {
 }
 
 class _RequestScreenState extends State<RequestScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // لا حاجة لإعداد خاص هنا، المزود يستمع تلقائيًا للعروض
-  }
-
   // قبول عرض سعر
   void _acceptOffer(Offer offer) {
     context.read<RequestProvider>().acceptOffer(offer);
@@ -38,17 +32,13 @@ class _RequestScreenState extends State<RequestScreen> {
       appBar: AppBar(
         title: Text('عروض السائقين'),
         actions: [
-          // زر إلغاء الطلب
           if (requestProv.offers.isEmpty && requestProv.isWaitingOffers)
             TextButton(
               onPressed: () {
                 requestProv.cancelRequest();
                 Navigator.pop(context);
               },
-              child: Text(
-                'إلغاء',
-                style: TextStyle(color: Colors.white),
-              ),
+              child: Text('إلغاء', style: TextStyle(color: Colors.white)),
             ),
         ],
       ),
@@ -65,13 +55,12 @@ class _RequestScreenState extends State<RequestScreen> {
     );
   }
 
-  // حالة انتظار العروض (رادار بحث)
+  // حالة انتظار العروض
   Widget _buildWaitingState(bool isDark) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // مؤشر رادار تفاعلي
           SizedBox(
             width: 120,
             height: 120,
@@ -133,10 +122,16 @@ class _RequestScreenState extends State<RequestScreen> {
             // صورة السائق واسمه وتقييمه
             Row(
               children: [
+                // صورة السائق
                 CircleAvatar(
                   radius: 28,
                   backgroundColor: AppTheme.primary.withOpacity(0.1),
-                  child: Icon(Icons.person, color: AppTheme.primary, size: 30),
+                  backgroundImage: offer.driverPhotoUrl != null
+                      ? NetworkImage(offer.driverPhotoUrl!)
+                      : null,
+                  child: offer.driverPhotoUrl == null
+                      ? Icon(Icons.person, color: AppTheme.primary, size: 30)
+                      : null,
                 ),
                 SizedBox(width: 12),
                 Expanded(
@@ -154,16 +149,20 @@ class _RequestScreenState extends State<RequestScreen> {
                       SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.star, color: Colors.amber, size: 16),
-                          SizedBox(width: 4),
-                          Text(
-                            '4.5',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                          if (offer.rating != null) ...[
+                            Icon(Icons.star, color: Colors.amber, size: 16),
+                            SizedBox(width: 4),
+                            Text(
+                              offer.rating!.toStringAsFixed(1),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: isDark
+                                    ? AppTheme.darkTextSecondary
+                                    : AppTheme.lightTextSecondary,
+                              ),
                             ),
-                          ),
-                          SizedBox(width: 8),
+                            SizedBox(width: 8),
+                          ],
                           Icon(Icons.verified, color: Colors.green, size: 16),
                         ],
                       ),
@@ -187,7 +186,9 @@ class _RequestScreenState extends State<RequestScreen> {
                         '${offer.distanceKm!.toStringAsFixed(1)} كم',
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
                         ),
                       ),
                   ],
@@ -197,48 +198,69 @@ class _RequestScreenState extends State<RequestScreen> {
             SizedBox(height: 12),
             Divider(height: 1, color: Colors.grey.shade300),
             SizedBox(height: 12),
-            // نوع السطحة والوقت التقديري
+
+            // نوع السطحة واللوحة والوقت
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.local_shipping, color: AppTheme.primary, size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      'سطحة',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                if (offer.truckType != null) ...[
+                  Row(
+                    children: [
+                      Icon(Icons.local_shipping,
+                          color: AppTheme.primary, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        offer.truckType!,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
+                        ),
                       ),
+                      if (offer.truckPlate != null) ...[
+                        SizedBox(width: 8),
+                        Text(
+                          offer.truckPlate!,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : AppTheme.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ] else
+                  Text(
+                    'نوع السطحة غير محدد',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
                     ),
-                    SizedBox(width: 8),
-                    Text(
-                      '12345',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : AppTheme.textPrimary,
+                  ),
+                if (offer.etaMinutes != null)
+                  Row(
+                    children: [
+                      Icon(Icons.timer, color: AppTheme.primary, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        '${offer.etaMinutes} دقائق',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Icon(Icons.timer, color: AppTheme.primary, size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      '5 دقائق',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
               ],
             ),
             SizedBox(height: 16),
+
             // زر قبول العرض
             SizedBox(
               width: double.infinity,
