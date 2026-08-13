@@ -9,39 +9,8 @@ import 'package:provider/provider.dart';
 import '../providers/location_provider.dart';
 import '../theme.dart';
 import '../config.dart';
-
-// نموذج ورشة التصليح
-class Workshop {
-  final int id;
-  final String name;
-  final String specialty;
-  final String phone;
-  final double lat;
-  final double lng;
-  final double rating;
-
-  Workshop({
-    required this.id,
-    required this.name,
-    required this.specialty,
-    required this.phone,
-    required this.lat,
-    required this.lng,
-    required this.rating,
-  });
-
-  factory Workshop.fromJson(Map<String, dynamic> json) {
-    return Workshop(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? '',
-      specialty: json['specialty'] ?? '',
-      phone: json['phone'] ?? '',
-      lat: (json['lat'] as num?)?.toDouble() ?? 0,
-      lng: (json['lng'] as num?)?.toDouble() ?? 0,
-      rating: (json['rating'] as num?)?.toDouble() ?? 0,
-    );
-  }
-}
+import '../localizations/app_localizations.dart';
+import '../models/workshop.dart';
 
 class WorkshopsScreen extends StatefulWidget {
   @override
@@ -108,7 +77,6 @@ class _WorkshopsScreenState extends State<WorkshopsScreen> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
-      // بديل: فتح تطبيق الخرائط العام
       final fallback = 'geo:${workshop.lat},${workshop.lng}?q=${workshop.lat},${workshop.lng}';
       final fallbackUri = Uri.parse(fallback);
       if (await canLaunchUrl(fallbackUri)) {
@@ -125,10 +93,11 @@ class _WorkshopsScreenState extends State<WorkshopsScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final locationProv = context.watch<LocationProvider>();
+    final lang = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('ورشات التصليح'),
+        title: Text(lang.translate('workshops') ?? 'ورشات التصليح'),
         actions: [
           IconButton(
             icon: Icon(Icons.refresh),
@@ -146,7 +115,7 @@ class _WorkshopsScreenState extends State<WorkshopsScreen> {
                       Icon(Icons.error_outline, size: 60, color: AppTheme.error),
                       SizedBox(height: 16),
                       Text(
-                        'فشل تحميل الورشات',
+                        lang.translate('failed_load_workshops') ?? 'فشل تحميل الورشات',
                         style: TextStyle(
                           fontSize: 16,
                           color: isDark ? Colors.white : AppTheme.textPrimary,
@@ -155,7 +124,7 @@ class _WorkshopsScreenState extends State<WorkshopsScreen> {
                       SizedBox(height: 8),
                       ElevatedButton(
                         onPressed: _loadWorkshops,
-                        child: Text('إعادة المحاولة'),
+                        child: Text(lang.translate('retry') ?? 'إعادة المحاولة'),
                       ),
                     ],
                   ),
@@ -168,7 +137,7 @@ class _WorkshopsScreenState extends State<WorkshopsScreen> {
                           Icon(Icons.build_circle, size: 80, color: Colors.grey[300]),
                           SizedBox(height: 16),
                           Text(
-                            'لا توجد ورشات شراكة متاحة حالياً',
+                            lang.translate('no_workshops') ?? 'لا توجد ورشات شراكة متاحة حالياً',
                             style: TextStyle(
                               fontSize: 16,
                               color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -217,7 +186,7 @@ class _WorkshopsScreenState extends State<WorkshopsScreen> {
                             itemCount: _workshops.length,
                             itemBuilder: (context, index) {
                               final workshop = _workshops[index];
-                              return _buildWorkshopCard(workshop, isDark, locationProv.currentPosition);
+                              return _buildWorkshopCard(workshop, isDark, lang, locationProv.currentPosition);
                             },
                           ),
                         ),
@@ -227,7 +196,7 @@ class _WorkshopsScreenState extends State<WorkshopsScreen> {
   }
 
   // بطاقة ورشة
-  Widget _buildWorkshopCard(Workshop workshop, bool isDark, LatLng? userLocation) {
+  Widget _buildWorkshopCard(Workshop workshop, bool isDark, AppLocalizations lang, LatLng? userLocation) {
     // حساب المسافة إذا توفر موقع المستخدم
     double? distanceKm;
     if (userLocation != null) {
@@ -306,7 +275,7 @@ class _WorkshopsScreenState extends State<WorkshopsScreen> {
                   Icon(Icons.near_me, color: AppTheme.primary, size: 16),
                   SizedBox(width: 8),
                   Text(
-                    'على بعد ${distanceKm.toStringAsFixed(1)} كم',
+                    '${lang.translate('distance') ?? 'على بعد'} ${distanceKm.toStringAsFixed(1)} كم',
                     style: TextStyle(
                       fontSize: 13,
                       color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -322,7 +291,7 @@ class _WorkshopsScreenState extends State<WorkshopsScreen> {
                   child: ElevatedButton.icon(
                     onPressed: () => _callWorkshop(workshop.phone),
                     icon: Icon(Icons.phone, size: 18),
-                    label: Text('اتصال'),
+                    label: Text(lang.translate('call') ?? 'اتصال'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       padding: EdgeInsets.symmetric(vertical: 10),
@@ -334,7 +303,7 @@ class _WorkshopsScreenState extends State<WorkshopsScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () => _openMaps(workshop),
                     icon: Icon(Icons.directions, size: 18),
-                    label: Text('توجيه'),
+                    label: Text(lang.translate('directions') ?? 'توجيه'),
                     style: OutlinedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 10),
                     ),
