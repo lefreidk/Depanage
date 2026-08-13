@@ -3,11 +3,14 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/request_provider.dart';
+import '../providers/location_provider.dart';
 import '../services/socket_service.dart';
 import '../theme.dart';
 import '../config.dart';
+import '../localizations/app_localizations.dart';
 import 'completion_rating_screen.dart';
 
 class TrackingScreen extends StatefulWidget {
@@ -24,16 +27,13 @@ class _TrackingScreenState extends State<TrackingScreen> {
     _listenForProviderLocation();
   }
 
-  // الاستماع لتحديثات موقع السطحة من الخادم
+  // الاستماع لتحديثات موقع السطحة عبر Socket.IO
   void _listenForProviderLocation() {
     final socket = SocketService.socket;
     socket.on('provider:location:update', (data) {
       if (mounted && data['lat'] != null && data['lng'] != null) {
         setState(() {
-          _truckPosition = LatLng(
-            (data['lat'] as num).toDouble(),
-            (data['lng'] as num).toDouble(),
-          );
+          _truckPosition = LatLng(data['lat'], data['lng']);
         });
       }
     });
@@ -45,10 +45,27 @@ class _TrackingScreenState extends State<TrackingScreen> {
     super.dispose();
   }
 
+  // فتح الهاتف للاتصال بالسائق
+  Future<void> _callDriver(String phone, AppLocalizations lang) async {
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(lang.translate('driver_phone_unavailable') ?? 'رقم السائق غير متوفر حالياً')),
+      );
+      return;
+    }
+    final url = 'tel:$phone';
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(lang.translate('call_failed') ?? 'تعذر فتح الهاتف')),
+      );
+    }
+  }
+
   // إتمام الرحلة والتوجه لشاشة التقييم
   void _completeTrip() {
-    final requestProv = context.read<RequestProvider>();
-    requestProv.completeRequest();
+    context.read<RequestProvider>().completeRequest();
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => CompletionRatingScreen()),
@@ -58,21 +75,23 @@ class _TrackingScreenState extends State<TrackingScreen> {
   @override
   Widget build(BuildContext context) {
     final requestProv = context.watch<RequestProvider>();
+    final locationProv = context.watch<LocationProvider>();
     final request = requestProv.currentRequest;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lang = AppLocalizations.of(context);
 
     if (request == null) {
       return Scaffold(
-        appBar: AppBar(title: Text('تتبع الونش')),
-        body: Center(child: Text('لا يوجد طلب نشط')),
+        appBar: AppBar(title: Text(lang.translate('tracking') ?? 'تتبع الونش')),
+        body: Center(child: Text(lang.translate('no_active_request') ?? 'لا يوجد طلب نشط')),
       );
     }
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final pickupLatLng = LatLng(request.pickupLat, request.pickupLng);
     final dropoffLatLng = LatLng(request.dropoffLat, request.dropoffLng);
 
     return Scaffold(
-      appBar: AppBar(title: Text('تتبع الونش')),
+      appBar: AppBar(title: Text(lang.translate('tracking') ?? 'تتبع الونش')),
       body: Stack(
         children: [
           // الخريطة
@@ -93,8 +112,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                     point: pickupLatLng,
                     width: 50,
                     height: 50,
-                    child: Icon(Icons.car_repair,
-                        color: AppTheme.primary, size: 40),
+                    child: Icon(Icons.car_repair, color: AppTheme.primary, size: 40),
                   ),
                   // الوجهة
                   Marker(
@@ -120,8 +138,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                             ),
                           ],
                         ),
-                        child: Icon(Icons.local_shipping,
-                            color: Colors.white, size: 30),
+                        child: Icon(Icons.local_shipping, color: Colors.white, size: 30),
                       ),
                     ),
                 ],
@@ -129,7 +146,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
             ],
           ),
 
-          // البطاقة السفلية
+          // بطاقة معلومات السائق والدفع النقدي
           Positioned(
             bottom: 0,
             left: 0,
@@ -163,27 +180,28 @@ class _TrackingScreenState extends State<TrackingScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              request.providerName ?? 'السائق غير محدد',
+                              request.providerName ?? lang.translate('driver') ?? 'السائق',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? Colors.white
-                                    : AppTheme.textPrimary,
+                                color: isDark ? Colors.white : AppTheme.textPrimary,
                               ),
                             ),
                             if (request.providerPlate != null)
                               Text(
-                                'لوحة: ${request.providerPlate}',
+                                '${lang.translate('plate_number') ?? 'لوحة'}: ${request.providerPlate}',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: isDark
-                                      ? AppTheme.darkTextSecondary
-                                      : AppTheme.lightTextSecondary,
+                                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
                                 ),
                               ),
                           ],
                         ),
+                      ),
+                      IconButton(
+                        onPressed: () => _callDriver('', lang), // رقم فارغ للتوضيح
+                        icon: Icon(Icons.phone, color: Colors.green),
+                        iconSize: 28,
                       ),
                     ],
                   ),
@@ -204,13 +222,11 @@ class _TrackingScreenState extends State<TrackingScreen> {
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'الدفع نقداً حصراً للسائق عند الوصول',
+                            lang.translate('cash_payment') ?? 'الدفع نقداً حصراً للسائق عند الوصول',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: isDark
-                                  ? Colors.white
-                                  : AppTheme.textPrimary,
+                              color: isDark ? Colors.white : AppTheme.textPrimary,
                             ),
                           ),
                         ),
@@ -227,13 +243,13 @@ class _TrackingScreenState extends State<TrackingScreen> {
                   ),
                   SizedBox(height: 16),
 
-                  // زر إنهاء الرحلة (مؤقت للتجربة، في النهائي يفعّله السائق)
+                  // زر إنهاء الرحلة (للتجربة فقط، في التطبيق الفعلي يفعّله السائق)
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: _completeTrip,
                       icon: Icon(Icons.check_circle_outline),
-                      label: Text('إنهاء الرحلة والتقييم'),
+                      label: Text(lang.translate('complete_ride') ?? 'إنهاء الرحلة والتقييم'),
                     ),
                   ),
                 ],
