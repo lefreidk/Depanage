@@ -3,10 +3,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/request_provider.dart';
-import '../providers/location_provider.dart';
 import '../services/socket_service.dart';
 import '../theme.dart';
 import '../config.dart';
@@ -26,13 +24,16 @@ class _TrackingScreenState extends State<TrackingScreen> {
     _listenForProviderLocation();
   }
 
-  // الاستماع لتحديثات موقع السطحة عبر Socket.IO
+  // الاستماع لتحديثات موقع السطحة من الخادم
   void _listenForProviderLocation() {
     final socket = SocketService.socket;
     socket.on('provider:location:update', (data) {
       if (mounted && data['lat'] != null && data['lng'] != null) {
         setState(() {
-          _truckPosition = LatLng(data['lat'], data['lng']);
+          _truckPosition = LatLng(
+            (data['lat'] as num).toDouble(),
+            (data['lng'] as num).toDouble(),
+          );
         });
       }
     });
@@ -42,18 +43,6 @@ class _TrackingScreenState extends State<TrackingScreen> {
   void dispose() {
     SocketService.socket.off('provider:location:update');
     super.dispose();
-  }
-
-  // فتح الهاتف للاتصال بالسائق
-  Future<void> _callDriver(String phone) async {
-    final url = 'tel:$phone';
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر فتح الهاتف')),
-      );
-    }
   }
 
   // إتمام الرحلة والتوجه لشاشة التقييم
@@ -69,7 +58,6 @@ class _TrackingScreenState extends State<TrackingScreen> {
   @override
   Widget build(BuildContext context) {
     final requestProv = context.watch<RequestProvider>();
-    final locationProv = context.watch<LocationProvider>();
     final request = requestProv.currentRequest;
 
     if (request == null) {
@@ -105,7 +93,8 @@ class _TrackingScreenState extends State<TrackingScreen> {
                     point: pickupLatLng,
                     width: 50,
                     height: 50,
-                    child: Icon(Icons.car_repair, color: AppTheme.primary, size: 40),
+                    child: Icon(Icons.car_repair,
+                        color: AppTheme.primary, size: 40),
                   ),
                   // الوجهة
                   Marker(
@@ -131,7 +120,8 @@ class _TrackingScreenState extends State<TrackingScreen> {
                             ),
                           ],
                         ),
-                        child: Icon(Icons.local_shipping, color: Colors.white, size: 30),
+                        child: Icon(Icons.local_shipping,
+                            color: Colors.white, size: 30),
                       ),
                     ),
                 ],
@@ -139,7 +129,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
             ],
           ),
 
-          // بطاقة معلومات السائق والدفع النقدي
+          // البطاقة السفلية
           Positioned(
             bottom: 0,
             left: 0,
@@ -173,11 +163,13 @@ class _TrackingScreenState extends State<TrackingScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              request.providerName ?? 'السائق',
+                              request.providerName ?? 'السائق غير محدد',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : AppTheme.textPrimary,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppTheme.textPrimary,
                               ),
                             ),
                             if (request.providerPlate != null)
@@ -185,16 +177,13 @@ class _TrackingScreenState extends State<TrackingScreen> {
                                 'لوحة: ${request.providerPlate}',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                                  color: isDark
+                                      ? AppTheme.darkTextSecondary
+                                      : AppTheme.lightTextSecondary,
                                 ),
                               ),
                           ],
                         ),
-                      ),
-                      IconButton(
-                        onPressed: () => _callDriver('213561014379'), // رقم تجريبي، استبدله برقم السائق الفعلي
-                        icon: Icon(Icons.phone, color: Colors.green),
-                        iconSize: 28,
                       ),
                     ],
                   ),
@@ -219,7 +208,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : AppTheme.textPrimary,
+                              color: isDark
+                                  ? Colors.white
+                                  : AppTheme.textPrimary,
                             ),
                           ),
                         ),
@@ -236,7 +227,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                   ),
                   SizedBox(height: 16),
 
-                  // زر إنهاء الرحلة (للتجربة فقط، في التطبيق الفعلي يفعّله السائق)
+                  // زر إنهاء الرحلة (مؤقت للتجربة، في النهائي يفعّله السائق)
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
