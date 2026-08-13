@@ -10,6 +10,7 @@ import '../providers/auth_provider.dart';
 import '../providers/app_provider.dart';
 import '../theme.dart';
 import '../config.dart';
+import '../localizations/app_localizations.dart';
 import '../widgets/drawer_menu.dart';
 import 'request_detail_screen.dart';
 
@@ -19,17 +20,14 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // الفئة المختارة حاليًا (افتراضيًا سيارة سياحية)
   String _selectedCategory = 'car';
 
   @override
   void initState() {
     super.initState();
-    // جلب موقع المستخدم
     context.read<LocationProvider>().getCurrentLocation();
   }
 
-  // فتح شاشة تفاصيل الطلب مع تمرير الفئة المختارة
   void _openRequestDetail() {
     final locationProv = context.read<LocationProvider>();
     if (locationProv.currentPosition == null) {
@@ -54,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final locationProv = context.watch<LocationProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lang = AppLocalizations.of(context);
 
     return Scaffold(
       drawer: DrawerMenu(),
@@ -70,7 +69,6 @@ class _HomeScreenState extends State<HomeScreen> {
             )
           : Stack(
               children: [
-                // الخريطة
                 FlutterMap(
                   options: MapOptions(
                     center: locationProv.currentPosition,
@@ -127,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   top: MediaQuery.of(context).padding.top + 70,
                   left: 16,
                   right: 16,
-                  child: _buildVehicleSelector(isDark),
+                  child: _buildVehicleSelector(isDark, lang),
                 ),
 
                 // شريط البحث الموحد
@@ -135,15 +133,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   bottom: 30,
                   left: 16,
                   right: 16,
-                  child: _buildSearchBar(isDark),
+                  child: _buildSearchBar(isDark, lang),
                 ),
               ],
             ),
     );
   }
 
-  // شريط اختيار فئة المركبة (أفقي)
-  Widget _buildVehicleSelector(bool isDark) {
+  Widget _buildVehicleSelector(bool isDark, AppLocalizations lang) {
     final categories = AppConfig.vehicleCategories;
 
     return Container(
@@ -154,7 +151,8 @@ class _HomeScreenState extends State<HomeScreen> {
         separatorBuilder: (_, __) => SizedBox(width: 8),
         itemBuilder: (context, index) {
           final key = categories.keys.elementAt(index);
-          final label = categories[key]!;
+          final labelKey = _getVehicleLabelKey(key);
+          final label = lang.translate(labelKey) ?? categories[key]!;
           final isSelected = _selectedCategory == key;
           final icon = _getVehicleIcon(key);
 
@@ -209,8 +207,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // شريط البحث الموحد
-  Widget _buildSearchBar(bool isDark) {
+  Widget _buildSearchBar(bool isDark, AppLocalizations lang) {
     return Card(
       elevation: 4,
       color: isDark ? AppTheme.darkSurface : Colors.white,
@@ -225,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'ما الوجهة وما التكلفة؟',
+                  lang.translate('search_hint') ?? 'ما الوجهة وما التكلفة؟',
                   style: TextStyle(
                     fontSize: 16,
                     color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
@@ -241,7 +238,23 @@ class _HomeScreenState extends State<HomeScreen> {
     ).animate().slideY(begin: 1, duration: 600.ms, curve: Curves.easeOut);
   }
 
-  // أيقونة الفئة
+  String _getVehicleLabelKey(String category) {
+    switch (category) {
+      case 'motorcycle':
+        return 'motorcycle';
+      case 'car':
+        return 'car';
+      case 'utility':
+        return 'utility';
+      case 'truck':
+        return 'light_truck';
+      case 'heavy_truck':
+        return 'heavy_truck';
+      default:
+        return 'car';
+    }
+  }
+
   IconData _getVehicleIcon(String category) {
     switch (category) {
       case 'motorcycle':
