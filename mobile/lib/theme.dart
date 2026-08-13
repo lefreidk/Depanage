@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   static const Color primary = Color(0xFF1E88E5);
@@ -43,17 +42,12 @@ class AppTheme {
         onSurface: textPrimary,
       ),
       scaffoldBackgroundColor: backgroundColor,
-      fontFamily: GoogleFonts.tajawal().fontFamily,
-      textTheme: GoogleFonts.tajawalTextTheme().apply(
-        bodyColor: textPrimary,
-        displayColor: textPrimary,
-      ),
       appBarTheme: AppBarTheme(
         elevation: 0,
         centerTitle: true,
         backgroundColor: isDark ? darkSurface : primary,
         foregroundColor: Colors.white,
-        titleTextStyle: GoogleFonts.tajawal(
+        titleTextStyle: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: Colors.white,
@@ -68,7 +62,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          textStyle: GoogleFonts.tajawal(
+          textStyle: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -82,7 +76,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          textStyle: GoogleFonts.tajawal(
+          textStyle: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -154,7 +148,7 @@ class AppTheme {
       ),
       popupMenuTheme: PopupMenuThemeData(
         color: surfaceColor,
-        textStyle: GoogleFonts.tajawal(
+        textStyle: TextStyle(
           fontSize: 14,
           color: textPrimary,
         ),
