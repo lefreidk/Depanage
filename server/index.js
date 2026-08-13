@@ -1,7 +1,3 @@
-// =====================================================
-// خادم ديباناج (server/index.js) - النسخة الكاملة مع رفع الوثائق
-// =====================================================
-
 // معالجة الأخطاء غير المتوقعة
 process.on('uncaughtException', (err) => {
   console.error('❌ خطأ غير متوقع:', err);
@@ -20,14 +16,11 @@ const { Redis } = require('@upstash/redis');
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // زيادة حد حجم JSON لاستقبال Base64
+app.use(express.json({ limit: '10mb' }));
 
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: '*' }
-});
+const io = new Server(server, { cors: { origin: '*' } });
 
-// ---------- الاتصال بالخدمات ----------
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
@@ -40,16 +33,6 @@ const redis = new Redis({
 
 const GREEN_API_ID = process.env.GREEN_API_ID_INSTANCE;
 const GREEN_API_TOKEN = process.env.GREEN_API_API_TOKEN_INSTANCE;
-
-const COMMISSION_RATE = 0.15; // 15%
-const MIN_WALLET_BALANCE = 500; // 500 دج
-const PRICE_PER_KM = {
-  motorcycle: 300,
-  car: 500,
-  utility: 500,
-  truck: 900,
-  heavy_truck: 900,
-};
 
 console.log('✅ تم الاتصال بالخدمات');
 console.log('GREEN_API_ID:', GREEN_API_ID ? 'موجود' : 'مفقود');
@@ -83,9 +66,6 @@ async function sendWhatsAppOtp(phone, otp) {
   }
 }
 
-// ---------- تخزين OTP في الذاكرة ----------
-const otpStore = new Map();
-
 // ---------- نقطة فحص ----------
 app.get('/', (req, res) => {
   res.send('ديباناج يعمل! 🚛');
@@ -102,13 +82,20 @@ app.post('/api/auth/send-otp', async (req, res) => {
   const cleanPhone = phone.replace(/[^0-9]/g, '');
   const otp = generateOtp();
 
-  otpStore.set(cleanPhone, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+  try {
+    // حفظ الرمز في Upstash Redis لمدة 5 دقائق (300 ثانية)
+    await redis.set(`otp:${cleanPhone}`, otp, { ex: 300 });
+    console.log('💾 حفظ OTP لـ', cleanPhone, 'الرمز:', otp);
 
-  const sent = await sendWhatsAppOtp(phone, otp);
-  if (sent) {
-    res.json({ success: true, message: 'تم إرسال الرمز' });
-  } else {
-    res.status(500).json({ error: 'فشل إرسال الرمز' });
+    const sent = await sendWhatsAppOtp(phone, otp);
+    if (sent) {
+      res.json({ success: true, message: 'تم إرسال الرمز' });
+    } else {
+      res.status(500).json({ error: 'فشل إرسال الرمز' });
+    }
+  } catch (e) {
+    console.error('❌ خطأ في إرسال OTP:', e);
+    res.status(500).json({ error: 'خطأ في الخادم' });
   }
 });
 
@@ -119,29 +106,20 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   const cleanPhone = phone.replace(/[^0-9]/g, '');
   const cleanOtp = otp.trim();
 
-  const stored = otpStore.get(cleanPhone);
-  if (!stored || Date.now() > stored.expiresAt || stored.otp !== cleanOtp) {
-    return res.status(400).json({ error: 'رمز التحقق غير صحيح' });
+  try {
+    const stored = await redis.get(`otp:${cleanPhone}`);
+    console.log('🔍 التحقق من OTP لـ', cleanPhone, 'المدخل:', cleanOtp, 'المخزن:', stored);
+
+    if (stored && stored === cleanOtp) {
+      await redis.del(`otp:${cleanPhone}`);
+      res.json({ success: true, userId: cleanPhone, phone: cleanPhone });
+    } else {
+      res.status(400).json({ error: 'رمز التحقق غير صحيح' });
+    }
+  } catch (e) {
+    console.error('❌ خطأ في التحقق:', e);
+    res.status(500).json({ error: 'خطأ في الخادم' });
   }
-  otpStore.delete(cleanPhone);
-
-  let { data: user } = await supabase
-    .from('users')
-    .select('*')
-    .eq('phone', cleanPhone)
-    .single();
-
-  if (!user) {
-    const { data: newUser, error } = await supabase
-      .from('users')
-      .insert([{ phone: cleanPhone, role: 'client' }])
-      .select()
-      .single();
-    if (error) return res.status(500).json({ error: 'فشل إنشاء المستخدم' });
-    user = newUser;
-  }
-
-  res.json({ success: true, userId: user.id, phone: cleanPhone, role: user.role });
 });
 
 // تسجيل دخول الأدمن
@@ -223,11 +201,9 @@ app.get('/api/workshops', async (req, res) => {
 // 4. طلب الشراكة للسائقين (Driver Onboarding) مع رفع الوثائق
 // =====================================================
 
-// دالة لرفع صورة Base64 إلى Supabase Storage
 async function uploadDocument(driverId, type, base64String) {
   if (!base64String) return null;
 
-  // إزالة بادئة Data URL إن وجدت
   const cleanBase64 = base64String.replace(/^data:image\/\w+;base64,/, '');
   const buffer = Buffer.from(cleanBase64, 'base64');
   const fileName = `${driverId}/${type}_${Date.now()}.png`;
@@ -244,7 +220,6 @@ async function uploadDocument(driverId, type, base64String) {
     return null;
   }
 
-  // الحصول على الرابط العام
   const { data: publicUrl } = supabase.storage
     .from('documents')
     .getPublicUrl(fileName);
@@ -263,10 +238,8 @@ app.post('/api/drivers/apply', async (req, res) => {
   }
 
   try {
-    // 1. تحديث اسم المستخدم
     await supabase.from('users').update({ name: fullName }).eq('id', userId);
 
-    // 2. إنشاء سجل سائق
     const { data: driver, error: driverError } = await supabase
       .from('drivers')
       .insert([{
@@ -285,7 +258,6 @@ app.post('/api/drivers/apply', async (req, res) => {
 
     const driverId = driver.id;
 
-    // 3. رفع الوثائق وحفظ روابطها
     const documentTypes = {
       licenseFront: 'license_front',
       licenseBack: 'license_back',
@@ -320,7 +292,6 @@ app.post('/api/drivers/apply', async (req, res) => {
 // 5. لوحة الإدارة (Admin)
 // =====================================================
 
-// جلب طلبات الشراكة المعلقة
 app.get('/api/admin/drivers/pending', async (req, res) => {
   const { data: drivers, error } = await supabase
     .from('drivers')
@@ -332,7 +303,6 @@ app.get('/api/admin/drivers/pending', async (req, res) => {
   res.json(drivers);
 });
 
-// قبول أو رفض سائق
 app.post('/api/admin/drivers/decision', async (req, res) => {
   const { driverId, decision, reason } = req.body;
   const newStatus = decision === 'approve' ? 'approved' : 'rejected';
@@ -347,7 +317,6 @@ app.post('/api/admin/drivers/decision', async (req, res) => {
   res.json({ success: true });
 });
 
-// شحن رصيد سائق (بواسطة رقم الهاتف)
 app.post('/api/admin/wallets/charge', async (req, res) => {
   const { phone, amount } = req.body;
   if (!phone || !amount) return res.status(400).json({ error: 'بيانات ناقصة' });
@@ -385,7 +354,7 @@ app.post('/api/admin/wallets/charge', async (req, res) => {
 });
 
 // =====================================================
-// 6. Socket.IO (التواصل الفوري)
+// 6. Socket.IO
 // =====================================================
 
 const onlineUsers = new Map();
@@ -399,7 +368,6 @@ io.on('connection', (socket) => {
     console.log(`✅ مستخدم ${userId} مسجل`);
   });
 
-  // سائق يحدّث موقعه
   socket.on('provider:location', async (data) => {
     try {
       const { userId, lat, lng } = data;
@@ -414,7 +382,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // عميل ينشئ طلب جر
   socket.on('request:tow', async (data) => {
     try {
       const { driverId, vehicleType, pickup, dropoff, price } = data;
@@ -458,7 +425,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // سائق يقدم عرضًا
   socket.on('offer:make', async (data) => {
     try {
       const { requestId, providerId, price } = data;
@@ -491,7 +457,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // عميل يقبل عرضًا
   socket.on('offer:accept', async (data) => {
     try {
       const { offerId, requestId, providerId } = data;
@@ -516,9 +481,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// =====================================================
-// تشغيل الخادم
-// =====================================================
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🚀 خادم ديباناج يعمل على المنفذ ${PORT}`);
