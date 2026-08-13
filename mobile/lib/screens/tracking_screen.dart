@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'completion_rating_screen.dart';
 
 import '../providers/request_provider.dart';
 import '../providers/location_provider.dart';
