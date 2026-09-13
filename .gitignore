@@ -1,0 +1,16 @@
+# Flutter
+mobile/.dart_tool/
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+
+# Android
+mobile/android/.gradle/
+mobile/android/local.properties
+
+# Node / Server
+server/node_modules/
+
+# Environment / secrets
+.env
+*.env

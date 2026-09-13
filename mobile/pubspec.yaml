@@ -1,0 +1,54 @@
+name: depannage_app
+description: تطبيق ديباناج لخدمات القطر - الجزائر (إعادة بناء كاملة)
+publish_to: 'none'
+version: 2.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # الخرائط والموقع
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+  geolocator: ^12.0.0
+
+  # الشبكة والاتصال الحي
+  socket_io_client: ^2.0.3
+  http: ^1.2.2
+
+  # إدارة الحالة والتخزين
+  provider: ^6.1.2
+  shared_preferences: ^2.3.2
+
+  # واجهات الإدخال
+  pinput: ^5.0.0
+  intl_phone_field: ^3.2.0
+
+  # الوسائط والروابط
+  image_picker: ^1.1.2
+  url_launcher: ^6.3.0
+
+  # التصميم
+  google_fonts: ^6.2.1
+  flutter_animate: ^4.5.0
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  remove_alpha_ios: false
+  image_path: "assets/icon/app_icon.png"
