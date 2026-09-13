@@ -80,6 +80,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final driverProv = context.watch<DriverProvider>();
+    final colors = context.colors;
 
     return Scaffold(
       appBar: AppBar(title: const Text('لوحة السائق')),
