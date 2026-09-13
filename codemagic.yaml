@@ -1,0 +1,46 @@
+workflows:
+  flutter-depannage:
+    name: Depannage Flutter Build
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    working_directory: mobile   # لأن pubspec.yaml داخل مجلد mobile
+
+    environment:
+      flutter: stable
+      java: 17
+      cocoapods: default
+
+    cache:
+      cache_paths:
+        - $HOME/.pub-cache
+
+    scripts:
+      - name: Flutter doctor
+        script: flutter doctor -v
+
+      - name: Get packages
+        script: flutter pub get
+
+      - name: Generate launcher icons
+        script: dart run flutter_launcher_icons
+
+      - name: Analyze
+        script: flutter analyze
+
+      - name: Run tests
+        script: flutter test
+
+      - name: Build APK
+        script: flutter build apk --release
+
+      - name: Build App Bundle
+        script: flutter build appbundle --release
+
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
+      - build/app/outputs/bundle/release/*.aab
+
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com
