@@ -68,7 +68,7 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   title: const Text('الوضع الداكن'),
                   value: appProv.themeMode == ThemeMode.dark,
-                  activeColor: AppColors.primary,
+                  activeThumbColor: AppColors.primary,
                   onChanged: (value) => context.read<AppProvider>().setDarkMode(value),
                 ),
                 const Divider(height: 1),
@@ -77,7 +77,7 @@ class SettingsScreen extends StatelessWidget {
                   title: const Text('وضع شريك العمل'),
                   subtitle: const Text('استقبال طلبات الجر كسائق', style: TextStyle(fontSize: 12)),
                   value: appProv.isDriverMode,
-                  activeColor: AppColors.primary,
+                  activeThumbColor: AppColors.primary,
                   onChanged: (value) async {
                     await context.read<AppProvider>().setDriverMode(value);
                     if (value && context.mounted) {

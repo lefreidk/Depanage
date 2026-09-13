@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_dimens.dart';
 import '../theme/app_text_styles.dart';
-import '../theme/app_theme.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
@@ -65,7 +64,7 @@ class AppDrawer extends StatelessWidget {
               secondary: const Icon(Icons.local_shipping_outlined, color: AppColors.primary),
               title: const Text('وضع شريك العمل'),
               value: appProv.isDriverMode,
-              activeColor: AppColors.primary,
+              activeThumbColor: AppColors.primary,
               onChanged: (value) async {
                 await context.read<AppProvider>().setDriverMode(value);
                 if (value && context.mounted) {
