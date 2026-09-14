@@ -61,7 +61,7 @@ class _CompletionRatingScreenState extends State<CompletionRatingScreen> {
             Container(
               width: 84,
               height: 84,
-              decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.12), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: AppColors.success.withOpacity(0.12), shape: BoxShape.circle),
               child: const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 56),
             ).animate().scale(duration: 600.ms, curve: Curves.elasticOut),
             const SizedBox(height: AppSpacing.lg),

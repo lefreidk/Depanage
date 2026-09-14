@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'app_colors.dart';
 
 /// نظام الطباعة الموحّد. نستخدم خط Cairo (يدعم العربية بشكل ممتاز
 /// ومصمم خصيصاً لواجهات المستخدم الحديثة) عبر google_fonts.

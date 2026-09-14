@@ -80,7 +80,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                 userAgentPackageName: 'com.depannage.app',
               ),
               MarkerLayer(markers: [
-                Marker(point: pickup, width: 46, height: 46, child: const Icon(Icons.car_repair_rounded, color: AppColors.primary, size: 36)),
+                Marker(point: pickup, width: 46, height: 46, child: const Icon(Icons.car_repair, color: AppColors.primary, size: 36)),
                 Marker(point: dropoff, width: 46, height: 46, child: const Icon(Icons.flag_rounded, color: AppColors.success, size: 36)),
                 if (_truckPosition != null)
                   Marker(
@@ -92,7 +92,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                         color: AppColors.accent,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 3),
-                        boxShadow: [BoxShadow(color: AppColors.accent.withValues(alpha: 0.4), blurRadius: 12)],
+                        boxShadow: [BoxShadow(color: AppColors.accent.withOpacity(0.4), blurRadius: 12)],
                       ),
                       child: const Icon(Icons.local_shipping_rounded, color: Colors.white, size: 26),
                     ),
@@ -110,7 +110,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
               decoration: BoxDecoration(
                 color: colors.surface,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 18)],
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 18)],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -119,7 +119,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                     children: [
                       CircleAvatar(
                         radius: 24,
-                        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                        backgroundColor: AppColors.primary.withOpacity(0.1),
                         child: const Icon(Icons.person_rounded, color: AppColors.primary),
                       ),
                       const SizedBox(width: AppSpacing.md),
@@ -144,7 +144,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(AppSpacing.md),
                     decoration: BoxDecoration(
-                      color: AppColors.accent.withValues(alpha: 0.12),
+                      color: AppColors.accent.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                     child: Row(

@@ -38,7 +38,9 @@ class LocationProvider extends ChangeNotifier {
         throw Exception('تم رفض إذن الموقع');
       }
 
-      final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
       _currentPosition = LatLng(position.latitude, position.longitude);
       _status = 'تم تحديد الموقع';
     } catch (e) {

@@ -126,7 +126,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                   point: widget.pickupLocation,
                   width: 54,
                   height: 54,
-                  child: const Icon(Icons.car_repair_rounded, color: AppColors.primary, size: 40),
+                  child: const Icon(Icons.car_repair, color: AppColors.primary, size: 40),
                 ),
                 if (_dropoff != null)
                   Marker(
@@ -148,7 +148,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
               decoration: BoxDecoration(
                 color: colors.surface,
                 borderRadius: BorderRadius.circular(AppRadius.lg),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 12)],
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 12)],
               ),
               child: Row(
                 children: [
@@ -185,7 +185,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
               decoration: BoxDecoration(
                 color: colors.surface,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 18)],
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 18)],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,

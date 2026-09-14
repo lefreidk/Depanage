@@ -29,6 +29,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
   void _showOfferSheet(BuildContext context, IncomingRequest request) {
     final priceController = TextEditingController();
+    final colors = context.colors;
 
     showModalBottomSheet(
       context: context,
@@ -80,7 +81,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final driverProv = context.watch<DriverProvider>();
-    final colors = context.colors;
 
     return Scaffold(
       appBar: AppBar(title: const Text('لوحة السائق')),
@@ -100,7 +100,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                 children: [
                   Text('لديك رحلة نشطة حالياً', style: AppTextStyles.title(Colors.white)),
                   const SizedBox(height: AppSpacing.sm),
-                  Text('اضغط أدناه فور تسليم المركبة للعميل', style: AppTextStyles.bodyMedium(Colors.white.withValues(alpha: 0.9))),
+                  Text('اضغط أدناه فور تسليم المركبة للعميل', style: AppTextStyles.bodyMedium(Colors.white.withOpacity(0.9))),
                   const SizedBox(height: AppSpacing.md),
                   AppButton(
                     label: 'إنهاء الرحلة',
@@ -145,6 +145,7 @@ class _RequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
 
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.lg),

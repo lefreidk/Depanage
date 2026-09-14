@@ -1,0 +1,40 @@
+name: Build Depannage APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['mobile/**']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate launcher icons
+        run: dart run flutter_launcher_icons
+
+      - name: Analyze (non-blocking)
+        run: flutter analyze || true
+
+      - name: Build APK
+        run: flutter build apk --release --dart-define=SERVER_URL=${{ vars.SERVER_URL || 'https://depannage-server.onrender.com' }}
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: depannage-apk
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk

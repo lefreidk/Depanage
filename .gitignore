@@ -1,16 +1,11 @@
-# Flutter
+# Flutter / mobile
 mobile/.dart_tool/
 mobile/build/
-mobile/.flutter-plugins
-mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/*.iml
+mobile/.idea/
 
-# Android
-mobile/android/.gradle/
-mobile/android/local.properties
-
-# Node / Server
+# Node / server
 server/node_modules/
-
-# Environment / secrets
-.env
-*.env
+server/.env
+*.log

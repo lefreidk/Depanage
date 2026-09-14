@@ -22,9 +22,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(
-      text: context.read<AuthProvider>().user?.name ?? '',
-    );
+    _nameController = TextEditingController(text: context.read<AuthProvider>().user?.name ?? '');
   }
 
   @override
@@ -43,16 +41,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     if (!mounted) return;
-
     setState(() => _isSaving = false);
 
     result.when(
-      success: (_) => ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم حفظ الاسم')),
-      ),
-      failure: (f) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(f.message)),
-      ),
+      success: (_) => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حفظ الاسم'))),
+      failure: (f) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(f.message))),
     );
   }
 
@@ -61,9 +54,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final auth = context.watch<AuthProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('الملف الشخصي'),
-      ),
+      appBar: AppBar(title: const Text('الملف الشخصي')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
@@ -71,19 +62,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: AppSpacing.lg),
             CircleAvatar(
               radius: 48,
-              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-              child: const Icon(
-                Icons.person_rounded,
-                size: 54,
-                color: AppColors.primary,
-              ),
+              backgroundColor: AppColors.primary.withOpacity(0.1),
+              child: const Icon(Icons.person_rounded, size: 54, color: AppColors.primary),
             ),
             const SizedBox(height: AppSpacing.xl),
-            AppTextField(
-              label: 'الاسم الكامل',
-              controller: _nameController,
-              prefixIcon: Icons.person_outline,
-            ),
+            AppTextField(label: 'الاسم الكامل', controller: _nameController, prefixIcon: Icons.person_outline),
             const SizedBox(height: AppSpacing.md),
             AppTextField(
               label: 'رقم الهاتف',

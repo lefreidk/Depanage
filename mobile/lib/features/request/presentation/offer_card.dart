@@ -33,7 +33,7 @@ class OfferCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 26,
-                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                backgroundColor: AppColors.primary.withOpacity(0.1),
                 child: const Icon(Icons.person_rounded, color: AppColors.primary, size: 28),
               ),
               const SizedBox(width: AppSpacing.md),

@@ -78,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Container(
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
+                      color: Colors.white.withOpacity(0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.local_shipping_rounded, color: Colors.white, size: 46),
@@ -91,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     'خدمة الجر بين يديك، أينما كنت',
-                    style: AppTextStyles.bodyMedium(Colors.white.withValues(alpha: 0.85)),
+                    style: AppTextStyles.bodyMedium(Colors.white.withOpacity(0.85)),
                   ).animate().fadeIn(delay: 350.ms),
                 ],
               ),

@@ -89,7 +89,7 @@ class _WorkshopsScreenState extends State<WorkshopsScreen> {
                                     width: 48,
                                     height: 48,
                                     decoration: BoxDecoration(
-                                      color: AppColors.accent.withValues(alpha: 0.15),
+                                      color: AppColors.accent.withOpacity(0.15),
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(Icons.build_rounded, color: AppColors.accent),

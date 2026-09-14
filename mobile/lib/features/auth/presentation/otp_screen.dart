@@ -95,7 +95,7 @@ class _OtpScreenState extends State<OtpScreen> {
       ),
     );
 
-    final focusedPinTheme = pinTheme.copyDecorationWith(
+    final focusedPinTheme = pinTheme.copyBorderWith(
       border: Border.all(color: AppColors.primary, width: 2),
     );
 

@@ -130,11 +130,6 @@ function registerRequestHandlers(io, socket) {
 
   socket.on('offer:make', async (data) => {
     try {
-      if (socket.user.role !== 'driver' && socket.user.role !== 'client') {
-        // السماح مبدئياً لأي مستخدم مصادَق لتوافق النسخة الحالية من الأدوار،
-        // لكن يُفضّل حصر هذا صراحة بدور 'driver' بعد تفعيل الأدوار الكاملة.
-      }
-
       const { requestId, price } = data;
       const providerId = socket.user.userId;
 
@@ -148,6 +143,13 @@ function registerRequestHandlers(io, socket) {
       const { data: request } = await supabase
         .from('tow_requests').select('client_id').eq('id', requestId).single();
 
+      // نُثري العرض باسم السائق الحقيقي بدل اسم عام، حتى تكون بطاقة
+      // العرض في تطبيق العميل ذات معنى فعلي.
+      const { data: driverUser } = await supabase
+        .from('users').select('name').eq('id', providerId).single();
+      const { data: driverInfo } = await supabase
+        .from('drivers').select('plate_number, vehicle_types').eq('user_id', providerId).maybeSingle();
+
       const clientSocketId = onlineUsers.get(request.client_id.toString());
       if (clientSocketId) {
         io.to(clientSocketId).emit('new:offer', {
@@ -155,6 +157,9 @@ function registerRequestHandlers(io, socket) {
           requestId,
           providerId,
           price,
+          providerName: driverUser?.name || 'سائق ديباناج',
+          truckPlate: driverInfo?.plate_number || null,
+          truckType: driverInfo?.vehicle_types?.[0] || null,
         });
       }
     } catch (e) {

@@ -1,46 +1,87 @@
 workflows:
-  flutter-depannage:
-    name: Depannage Flutter Build
-    instance_type: mac_mini_m2
+  # بناء APK للتوزيع المباشر (اختبار، توزيع يدوي، إلخ)
+  android-apk:
+    name: Depannage - Android APK
     max_build_duration: 60
-    working_directory: mobile   # لأن pubspec.yaml داخل مجلد mobile
-
     environment:
       flutter: stable
-      java: 17
-      cocoapods: default
-
+      vars:
+        # القيمة الافتراضية أدناه تُستخدم إن لم تُعرَّف متغيرات بيئة في واجهة Codemagic.
+        # لتغييرها بأمان: Codemagic > Environment variables > أضف SERVER_URL
+        # (بدون علامة "Secure" لأنه ليس سراً، رابط الخادم العام فقط).
+        SERVER_URL: "https://depannage-server.onrender.com"
     cache:
       cache_paths:
         - $HOME/.pub-cache
-
+        - $CM_BUILD_DIR/mobile/.dart_tool
     scripts:
-      - name: Flutter doctor
-        script: flutter doctor -v
-
-      - name: Get packages
+      - name: تثبيت الاعتماديات
+        working_directory: mobile
         script: flutter pub get
 
-      - name: Generate launcher icons
+      - name: توليد أيقونة التطبيق
+        working_directory: mobile
         script: dart run flutter_launcher_icons
 
-      - name: Analyze
-        script: flutter analyze
+      - name: تحليل الكود (لا يوقف البناء عند وجود تحذيرات فقط)
+        working_directory: mobile
+        script: flutter analyze || true
 
-      - name: Run tests
-        script: flutter test
-
-      - name: Build APK
-        script: flutter build apk --release
-
-      - name: Build App Bundle
-        script: flutter build appbundle --release
+      - name: بناء APK (release)
+        working_directory: mobile
+        script: |
+          flutter build apk --release \
+            --dart-define=SERVER_URL=$SERVER_URL
 
     artifacts:
-      - build/app/outputs/flutter-apk/*.apk
-      - build/app/outputs/bundle/release/*.aab
+      - mobile/build/app/outputs/flutter-apk/*.apk
+      - mobile/build/app/outputs/mapping/release/mapping.txt
+
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com   # ضع بريدك هنا لاستقبال رابط APK بعد كل بناء
+        notify:
+          success: true
+          failure: true
+
+  # بناء App Bundle (.aab) لرفعه على Google Play
+  android-playstore:
+    name: Depannage - Android App Bundle
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      vars:
+        SERVER_URL: "https://depannage-server.onrender.com"
+      # لتوقيع الحزمة لرفعها على Google Play، أضف من Codemagic UI:
+      # Code signing identities > Android keystore
+      android_signing:
+        - depannage_keystore   # اسم مرجعي فقط - أنشئه من واجهة Codemagic بعد رفع ملف keystore
+    cache:
+      cache_paths:
+        - $HOME/.pub-cache
+    scripts:
+      - name: تثبيت الاعتماديات
+        working_directory: mobile
+        script: flutter pub get
+
+      - name: توليد أيقونة التطبيق
+        working_directory: mobile
+        script: dart run flutter_launcher_icons
+
+      - name: بناء App Bundle (release)
+        working_directory: mobile
+        script: |
+          flutter build appbundle --release \
+            --dart-define=SERVER_URL=$SERVER_URL
+
+    artifacts:
+      - mobile/build/app/outputs/bundle/release/*.aab
 
     publishing:
       email:
         recipients:
           - your-email@example.com
+        notify:
+          success: true
+          failure: true

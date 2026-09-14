@@ -46,11 +46,11 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'motorcycle':
         return Icons.two_wheeler_rounded;
       case 'utility':
-        return Icons.airport_shuttle_rounded;
+        return Icons.car_rental;
       case 'truck':
         return Icons.local_shipping_outlined;
       case 'heavy_truck':
-        return Icons.fire_truck_rounded;
+        return Icons.fire_truck;
       default:
         return Icons.directions_car_rounded;
     }
@@ -108,9 +108,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: AppColors.primary,
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 3),
-                  boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.35), blurRadius: 14)],
+                  boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.35), blurRadius: 14)],
                 ),
-                child: const Icon(Icons.car_repair_rounded, color: Colors.white, size: 28),
+                child: const Icon(Icons.car_repair, color: Colors.white, size: 28),
               ),
             ),
           ],
@@ -169,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: isSelected ? 0.15 : 0.06),
+                      color: Colors.black.withOpacity(isSelected ? 0.15 : 0.06),
                       blurRadius: 8,
                       offset: const Offset(0, 3),
                     ),
@@ -203,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(
           color: colors.surface,
           borderRadius: BorderRadius.circular(AppRadius.xl),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 8))],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 8))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

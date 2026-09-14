@@ -58,7 +58,7 @@ class _SplashScreenState extends State<SplashScreen> {
               const SizedBox(height: AppSpacing.xs),
               Text(
                 'خدمة الجر بين يديك',
-                style: AppTextStyles.bodyLarge(Colors.white.withValues(alpha: 0.85)),
+                style: AppTextStyles.bodyLarge(Colors.white.withOpacity(0.85)),
               ).animate().fadeIn(delay: 500.ms),
               const SizedBox(height: AppSpacing.xxxl),
               const CircularProgressIndicator(color: Colors.white).animate().fadeIn(delay: 800.ms),
